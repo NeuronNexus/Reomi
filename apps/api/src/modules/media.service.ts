@@ -29,13 +29,18 @@ export const createUpload = async (
   const type = input.contentType.toLowerCase();
   const image = isImage(type);
   const video = isVideo(type);
-  if (!image && !video) throw new AppError(400, 'media_invalid', 'Use a JPG, PNG, WebP, GIF, MP4, WebM or MOV file');
+  if (!image && !video)
+    throw new AppError(400, 'media_invalid', 'Use a JPG, PNG, WebP, GIF, MP4, WebM or MOV file');
   if (input.purpose === 'avatar' && !image) {
     throw new AppError(400, 'media_invalid', 'Profile photos must be images');
   }
   const limit = image ? MEDIA_LIMITS.imageBytes : MEDIA_LIMITS.videoBytes;
   if (input.size > limit) {
-    throw new AppError(400, 'media_invalid', `Files of this type can be up to ${limit / 1024 / 1024} MB`);
+    throw new AppError(
+      400,
+      'media_invalid',
+      `Files of this type can be up to ${limit / 1024 / 1024} MB`,
+    );
   }
 
   const id = randomUUID();
@@ -93,7 +98,10 @@ export const signPaths = async (ctx: Ctx, paths: readonly (string | null | undef
 
 export const loadMedia = async (ctx: Ctx, ids: readonly string[]) => {
   if (ids.length === 0) return new Map<string, Media>();
-  const rows = await ctx.db.select().from(media).where(inArray(media.id, [...new Set(ids)]));
+  const rows = await ctx.db
+    .select()
+    .from(media)
+    .where(inArray(media.id, [...new Set(ids)]));
   const urls = await signPaths(
     ctx,
     rows.map((row) => row.path),
@@ -101,6 +109,9 @@ export const loadMedia = async (ctx: Ctx, ids: readonly string[]) => {
   return new Map(
     rows
       .filter((row) => urls.has(row.path))
-      .map((row) => [row.id, { id: row.id, url: urls.get(row.path)!, type: mediaKind(row.contentType) }]),
+      .map((row) => [
+        row.id,
+        { id: row.id, url: urls.get(row.path)!, type: mediaKind(row.contentType) },
+      ]),
   );
 };

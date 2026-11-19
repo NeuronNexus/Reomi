@@ -59,7 +59,7 @@ export const MyRoomsPage = () => {
               </Button>
             )}
             {application.status === 'joined' && (
-              <LinkButton to={`/rooms/${application.roomId}/lobby`}>Enter room</LinkButton>
+              <LinkButton to={`/rooms/${application.roomId}/space`}>Enter room</LinkButton>
             )}
           </li>
         ))}

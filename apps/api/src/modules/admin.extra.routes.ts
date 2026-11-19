@@ -41,7 +41,11 @@ export const adminModerationRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/communities',
     {
-      schema: { tags, querystring: paginationQuery, response: { 200: paginated(adminCommunityDto) } },
+      schema: {
+        tags,
+        querystring: paginationQuery,
+        response: { 200: paginated(adminCommunityDto) },
+      },
     },
     async (request) => {
       const members = sql<number>`(select count(*)::int from community_members m

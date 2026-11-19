@@ -1,7 +1,15 @@
 import { and, desc, eq, inArray, or } from 'drizzle-orm';
 import { ageOn } from '@reomi/shared';
 import type { Follow, Reveal, RevealedProfile } from '@reomi/shared';
-import { applications, follows, hostVerifications, profiles, reveals, rooms, threads } from '../db/schema';
+import {
+  applications,
+  follows,
+  hostVerifications,
+  profiles,
+  reveals,
+  rooms,
+  threads,
+} from '../db/schema';
 import { AppError, conflict, forbidden, isUniqueViolation, notFound } from '../lib/errors';
 import { roomChannel, userChannel } from '../lib/realtime';
 import type { Ctx } from './common';
@@ -33,30 +41,46 @@ const toReveals = async (ctx: Ctx, rows: RevealRow[], viewerId: string): Promise
   const roomIds = [...new Set(rows.map((r) => r.roomId))];
   const [aliasRows, roomRows, acceptedProfiles, dmThreads] = await Promise.all([
     ctx.db
-      .select({ roomId: applications.roomId, userId: applications.userId, alias: applications.alias })
+      .select({
+        roomId: applications.roomId,
+        userId: applications.userId,
+        alias: applications.alias,
+      })
       .from(applications)
       .where(and(inArray(applications.roomId, roomIds), inArray(applications.userId, otherIds))),
-    ctx.db.select({ id: rooms.id, title: rooms.title }).from(rooms).where(inArray(rooms.id, roomIds)),
+    ctx.db
+      .select({ id: rooms.id, title: rooms.title })
+      .from(rooms)
+      .where(inArray(rooms.id, roomIds)),
     ctx.db
       .select()
       .from(profiles)
       .where(
         inArray(
           profiles.id,
-          rows.filter((r) => r.status === 'accepted').map((r) => (r.requesterId === viewerId ? r.recipientId : r.requesterId)).concat(['00000000-0000-0000-0000-000000000000']),
+          rows
+            .filter((r) => r.status === 'accepted')
+            .map((r) => (r.requesterId === viewerId ? r.recipientId : r.requesterId))
+            .concat(['00000000-0000-0000-0000-000000000000']),
         ),
       ),
     ctx.db
       .select()
       .from(threads)
-      .where(and(eq(threads.kind, 'dm'), or(eq(threads.userA, viewerId), eq(threads.userB, viewerId)))),
+      .where(
+        and(eq(threads.kind, 'dm'), or(eq(threads.userA, viewerId), eq(threads.userB, viewerId))),
+      ),
   ]);
-  const avatars = await signPaths(ctx, acceptedProfiles.map((p) => p.avatarPath));
+  const avatars = await signPaths(
+    ctx,
+    acceptedProfiles.map((p) => p.avatarPath),
+  );
 
   return rows.map((row) => {
     const outgoing = row.requesterId === viewerId;
     const otherId = outgoing ? row.recipientId : row.requesterId;
-    const profile = row.status === 'accepted' ? acceptedProfiles.find((p) => p.id === otherId) : undefined;
+    const profile =
+      row.status === 'accepted' ? acceptedProfiles.find((p) => p.id === otherId) : undefined;
     const [a, b] = orderedPair(viewerId, otherId);
     const thread = dmThreads.find((t) => t.userA === a && t.userB === b);
     return {
@@ -65,8 +89,11 @@ const toReveals = async (ctx: Ctx, rows: RevealRow[], viewerId: string): Promise
       roomTitle: roomRows.find((r) => r.id === row.roomId)?.title ?? 'A room',
       direction: outgoing ? 'outgoing' : 'incoming',
       status: row.status,
-      otherAlias: aliasRows.find((r) => r.roomId === row.roomId && r.userId === otherId)?.alias ?? 'Someone',
-      profile: profile ? toProfile(profile, profile.avatarPath ? avatars.get(profile.avatarPath) ?? null : null) : null,
+      otherAlias:
+        aliasRows.find((r) => r.roomId === row.roomId && r.userId === otherId)?.alias ?? 'Someone',
+      profile: profile
+        ? toProfile(profile, profile.avatarPath ? (avatars.get(profile.avatarPath) ?? null) : null)
+        : null,
       youConfirmed: Boolean(outgoing ? row.requesterConfirmedAt : row.recipientConfirmedAt),
       theyConfirmed: Boolean(outgoing ? row.recipientConfirmedAt : row.requesterConfirmedAt),
       stage: (outgoing ? row.requesterStage : row.recipientStage) ?? null,
@@ -110,7 +137,13 @@ const memberByAlias = async (ctx: Ctx, roomId: string, alias: string) => {
   const [row] = await ctx.db
     .select({ userId: applications.userId })
     .from(applications)
-    .where(and(eq(applications.roomId, roomId), eq(applications.alias, alias), eq(applications.status, 'joined')));
+    .where(
+      and(
+        eq(applications.roomId, roomId),
+        eq(applications.alias, alias),
+        eq(applications.status, 'joined'),
+      ),
+    );
   return row?.userId ?? null;
 };
 
@@ -121,7 +154,13 @@ const memberAlias = async (ctx: Ctx, roomId: string, userId: string) => {
   const [row] = await ctx.db
     .select({ alias: applications.alias })
     .from(applications)
-    .where(and(eq(applications.roomId, roomId), eq(applications.userId, userId), eq(applications.status, 'joined')));
+    .where(
+      and(
+        eq(applications.roomId, roomId),
+        eq(applications.userId, userId),
+        eq(applications.status, 'joined'),
+      ),
+    );
   return row?.alias ?? null;
 };
 
@@ -145,7 +184,8 @@ export const requestReveal = async (
       requesterAnnounce: input.announce,
     });
   } catch (error) {
-    if (isUniqueViolation(error)) throw conflict('reveal_exists', 'There is already a reveal between you two');
+    if (isUniqueViolation(error))
+      throw conflict('reveal_exists', 'There is already a reveal between you two');
     throw error;
   }
   await notify(ctx, [otherId], {
@@ -193,7 +233,12 @@ export const respondToReveal = async (
       link: '/connections',
     });
     // The room hears about it only if both people opted in to the announcement.
-    if (updated.requesterAnnounce && updated.recipientAnnounce && requesterAlias && recipientAlias) {
+    if (
+      updated.requesterAnnounce &&
+      updated.recipientAnnounce &&
+      requesterAlias &&
+      recipientAlias
+    ) {
       const { postSystemMessage } = await import('./space.service');
       await postSystemMessage(
         ctx,
@@ -218,7 +263,9 @@ export const cancelReveal = async (ctx: Ctx, revealId: string, userId: string) =
   const [row] = await ctx.db
     .update(reveals)
     .set({ status: 'cancelled' })
-    .where(and(eq(reveals.id, revealId), eq(reveals.requesterId, userId), eq(reveals.status, 'pending')))
+    .where(
+      and(eq(reveals.id, revealId), eq(reveals.requesterId, userId), eq(reveals.status, 'pending')),
+    )
     .returning();
   if (!row) throw conflict('conflict', 'This request can no longer be cancelled');
   ctx.hub.publish(userChannel(row.recipientId), { kind: 'reveals' });
@@ -235,8 +282,10 @@ export const confirmConnection = async (
   stage: NonNullable<RevealRow['requesterStage']>,
 ) => {
   const [reveal] = await ctx.db.select().from(reveals).where(eq(reveals.id, revealId));
-  if (!reveal || (reveal.requesterId !== userId && reveal.recipientId !== userId)) throw notFound('Reveal');
-  if (reveal.status !== 'accepted') throw new AppError(409, 'conflict', 'Only accepted reveals can be confirmed');
+  if (!reveal || (reveal.requesterId !== userId && reveal.recipientId !== userId))
+    throw notFound('Reveal');
+  if (reveal.status !== 'accepted')
+    throw new AppError(409, 'conflict', 'Only accepted reveals can be confirmed');
   const now = new Date();
   await ctx.db
     .update(reveals)
@@ -264,16 +313,21 @@ export const listFollowing = async (ctx: Ctx, userId: string): Promise<Follow[]>
     .leftJoin(hostVerifications, eq(hostVerifications.userId, follows.followeeId))
     .where(eq(follows.followerId, userId));
   const connections = await listConnections(ctx, userId);
-  const connected = new Set(connections.filter((c) => c.status === 'accepted').map((c) => c.profile?.userId));
-  const avatars = await signPaths(ctx, rows.filter((r) => connected.has(r.userId)).map((r) => r.avatarPath));
+  const connected = new Set(
+    connections.filter((c) => c.status === 'accepted').map((c) => c.profile?.userId),
+  );
+  const avatars = await signPaths(
+    ctx,
+    rows.filter((r) => connected.has(r.userId)).map((r) => r.avatarPath),
+  );
   return rows.map((row) => {
     const isConnection = connected.has(row.userId);
     return {
       id: isConnection || !row.hostPublicId ? row.userId : row.hostPublicId,
       // Hosts appear under their public name unless you know them personally.
-      name: isConnection ? row.fullName ?? 'Someone' : row.hostName ?? 'Host',
+      name: isConnection ? (row.fullName ?? 'Someone') : (row.hostName ?? 'Host'),
       kind: isConnection ? 'connection' : 'host',
-      avatarUrl: isConnection && row.avatarPath ? avatars.get(row.avatarPath) ?? null : null,
+      avatarUrl: isConnection && row.avatarPath ? (avatars.get(row.avatarPath) ?? null) : null,
     };
   });
 };

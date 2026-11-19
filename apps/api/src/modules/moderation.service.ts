@@ -66,7 +66,10 @@ export const enforce = async (
 
   let action: BlockedMessageDetails['action'] = 'none';
   const strikes = verdict.severity === 'strong' ? await strikesFor(ctx, incident.userId) : 0;
-  const code = incident.context === 'post' || incident.context === 'comment' ? 'content_blocked' : 'message_blocked';
+  const code =
+    incident.context === 'post' || incident.context === 'comment'
+      ? 'content_blocked'
+      : 'message_blocked';
 
   if (verdict.severity === 'strong') {
     if (strikes <= 1) {
@@ -122,7 +125,10 @@ export const enforce = async (
         .where(eq(profiles.id, incident.userId));
       await notify(ctx, [incident.userId], {
         kind: 'moderation',
-        title: action === 'removed' ? 'You were removed and muted for a week' : 'You are muted for a week',
+        title:
+          action === 'removed'
+            ? 'You were removed and muted for a week'
+            : 'You are muted for a week',
         body: 'This is your third strike in 30 days. One more suspends your account.',
       });
     } else {
@@ -155,7 +161,15 @@ export const assertNotMuted = (profile: { mutedUntil: Date | null }) => {
 
 export const report = async (
   ctx: Ctx,
-  input: { reporterId: string; userId: string; excerpt: string; context: string; roomId?: string | null; communityId?: string | null; reason: string },
+  input: {
+    reporterId: string;
+    userId: string;
+    excerpt: string;
+    context: string;
+    roomId?: string | null;
+    communityId?: string | null;
+    reason: string;
+  },
 ) => {
   await ctx.db.insert(moderationFlags).values({
     userId: input.userId,
@@ -172,7 +186,9 @@ export const report = async (
 /* Admin ----------------------------------------------------------------------------------- */
 
 export const listFlags = async (ctx: Ctx, query: z.infer<typeof adminFlagQuery>) => {
-  const reporter = sql<string | null>`(select p.email from profiles p where p.id = ${moderationFlags.reporterId})`;
+  const reporter = sql<
+    string | null
+  >`(select p.email from profiles p where p.id = ${moderationFlags.reporterId})`;
   const where = and(
     query.status ? eq(moderationFlags.status, query.status) : undefined,
     query.severity ? eq(moderationFlags.severity, query.severity) : undefined,
@@ -207,24 +223,26 @@ export const listFlags = async (ctx: Ctx, query: z.infer<typeof adminFlagQuery>)
   }
 
   return {
-    items: rows.map(
-      (row): AdminFlag => ({
-        id: row.flag.id,
-        userId: row.flag.userId,
-        userEmail: row.email,
-        userName: row.name,
-        userStatus: row.userStatus,
-        context: row.flag.context,
-        reason: row.flag.reason,
-        severity: row.flag.severity,
-        status: row.flag.status,
-        excerpt: row.flag.excerpt,
-        where: row.roomTitle ? `Room: ${row.roomTitle}` : row.communityName ? `Community: ${row.communityName}` : null,
-        reporterEmail: row.reporter,
-        strikes: strikeCounts.get(row.flag.userId) ?? 0,
-        createdAt: iso(row.flag.createdAt),
-      }),
-    ),
+    items: rows.map((row): AdminFlag => ({
+      id: row.flag.id,
+      userId: row.flag.userId,
+      userEmail: row.email,
+      userName: row.name,
+      userStatus: row.userStatus,
+      context: row.flag.context,
+      reason: row.flag.reason,
+      severity: row.flag.severity,
+      status: row.flag.status,
+      excerpt: row.flag.excerpt,
+      where: row.roomTitle
+        ? `Room: ${row.roomTitle}`
+        : row.communityName
+          ? `Community: ${row.communityName}`
+          : null,
+      reporterEmail: row.reporter,
+      strikes: strikeCounts.get(row.flag.userId) ?? 0,
+      createdAt: iso(row.flag.createdAt),
+    })),
     total: total?.value ?? 0,
     page: query.page,
     pageSize: query.pageSize,

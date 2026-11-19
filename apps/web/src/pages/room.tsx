@@ -1,13 +1,25 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CalendarDays, Clock, Sparkles, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  BellRing,
+  CalendarDays,
+  Clock,
+  Info,
+  Lock,
+  Scale,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useLocation, useParams } from 'react-router';
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { ApiRequestError, applyInput, formatPaise } from '@reomi/shared';
-import type { Lobby, MyApplication, RoomDetail } from '@reomi/shared';
-import { AuraAvatar, AuraPanel } from '../components/aura';
+import type { MyApplication, RoomDetail } from '@reomi/shared';
+import { AuraPanel } from '../components/aura';
+import { HostBadges, Rating } from '../components/reputation';
+import { RoomCard } from '../components/room-card';
 import { ApplicationBadge } from '../components/status';
 import {
   Badge,
@@ -21,16 +33,19 @@ import {
 } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/client';
-import { shortDate, timeLeft } from '../lib/format';
+import { opensIn, shortDate, timeLeft } from '../lib/format';
 import { CATEGORY_LABELS } from '../lib/labels';
+import { toastError } from '../lib/upload';
 import { usePayTicket } from '../lib/use-pay-ticket';
 
 export const RoomPage = () => {
   const { id = '' } = useParams();
+  const [params] = useSearchParams();
+  const code = params.get('code') ?? undefined;
   const { session } = useAuth();
   const room = useQuery({
-    queryKey: ['room', id, session?.user.id],
-    queryFn: () => api.get<RoomDetail>(`/v1/rooms/${id}`),
+    queryKey: ['room', id, session?.user.id, code],
+    queryFn: () => api.get<RoomDetail>(`/v1/rooms/${id}`, { code }),
   });
 
   if (room.isPending) return <Spinner />;
@@ -39,7 +54,7 @@ export const RoomPage = () => {
     return missing ? (
       <EmptyState
         title="This room is not open"
-        body="It may have ended, or the link may be wrong."
+        body="It may have ended, the link may be wrong, or it is private and needs its invite code."
         action={<LinkButton to="/">Back to Explore</LinkButton>}
       />
     ) : (
@@ -62,11 +77,25 @@ export const RoomPage = () => {
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
         <div>
           <AuraPanel seed={data.id} animated className="relative h-44 rounded-2xl md:h-60" />
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap items-center gap-2">
             <Badge>{CATEGORY_LABELS[data.category]}</Badge>
-            <h1 className="mt-3 font-display text-4xl leading-tight md:text-5xl">{data.title}</h1>
-            <p className="mt-3 text-lg text-muted">{data.summary}</p>
+            {data.visibility === 'private' && (
+              <Badge>
+                <Lock className="mr-1 size-3" aria-hidden />
+                Private
+              </Badge>
+            )}
+            {data.balanceMode === 'balanced' && (
+              <Badge>
+                <Scale className="mr-1 size-3" aria-hidden />
+                Interest balanced
+              </Badge>
+            )}
+            {data.admission === 'instant' && <Badge tone="ember">Instant seats</Badge>}
+            {data.upcoming && <Badge tone="ember">{opensIn(data.startsAt)}</Badge>}
           </div>
+          <h1 className="mt-3 font-display text-4xl leading-tight md:text-5xl">{data.title}</h1>
+          <p className="mt-3 text-lg text-muted">{data.summary}</p>
 
           <dl className="mt-6 grid grid-cols-1 gap-4 rounded-2xl border border-line p-5 sm:grid-cols-3">
             <Fact icon={<Users className="size-4" />} label="Seats">
@@ -75,8 +104,8 @@ export const RoomPage = () => {
             <Fact icon={<CalendarDays className="size-4" />} label="Room length">
               {data.durationDays} days
             </Fact>
-            <Fact icon={<Clock className="size-4" />} label="Closes">
-              {timeLeft(data.endsAt)}
+            <Fact icon={<Clock className="size-4" />} label={data.upcoming ? 'Opens' : 'Closes'}>
+              {data.upcoming ? shortDate(data.startsAt) : timeLeft(data.endsAt)}
             </Fact>
           </dl>
 
@@ -89,10 +118,47 @@ export const RoomPage = () => {
 
           <section className="mt-8 rounded-2xl border border-line p-5">
             <h2 className="text-sm text-faint">Your host</h2>
-            <p className="mt-1 font-display text-xl">{data.host.displayName}</p>
-            <p className="text-sm text-muted">
-              {data.host.roomsHosted} room{data.host.roomsHosted === 1 ? '' : 's'} hosted
-            </p>
+            <Link
+              to={`/hosts/${data.host.id}`}
+              className="mt-1 block font-display text-2xl hover:text-amber"
+            >
+              {data.host.displayName}
+            </Link>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <Rating value={data.host.rating} count={data.host.ratingCount} size="lg" />
+              <HostBadges badges={data.host.badges} />
+            </div>
+            <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
+              <div>
+                <dt className="text-faint">Rooms hosted</dt>
+                <dd className="font-display text-2xl">{data.host.roomsHosted}</dd>
+              </div>
+              <div>
+                <dt className="text-faint">Confirmed connections</dt>
+                <dd className="font-display text-2xl">{data.host.verifiedConnections}</dd>
+              </div>
+              <div>
+                <dt className="text-faint">Reviews</dt>
+                <dd className="font-display text-2xl">{data.host.ratingCount}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="mt-8 rounded-2xl border border-line p-5 text-sm text-muted">
+            <h2 className="flex items-center gap-2 font-medium text-cream">
+              <ShieldCheck className="size-4 text-success" aria-hidden />
+              How this room keeps you safe
+            </h2>
+            <ul className="mt-3 list-disc space-y-1.5 pl-5">
+              <li>You appear under an alias that is only used in this room.</li>
+              <li>Real names, photos and contact details are blocked before anyone sees them.</li>
+              <li>Profiles are shown only when two people both agree to reveal.</li>
+              {data.balanceMode === 'balanced' && (
+                <li>
+                  Admissions follow who people want to meet, so the room never tips heavily one way.
+                </li>
+              )}
+            </ul>
           </section>
         </div>
 
@@ -100,15 +166,62 @@ export const RoomPage = () => {
           <div className="rounded-2xl border border-line bg-surface p-6">
             <p className="font-display text-4xl">{formatPaise(data.ticketPricePaise)}</p>
             <p className="mt-1 text-sm text-muted">
-              One-time ticket, charged only if the host accepts you.
+              One-time ticket, charged only once you have a seat.
             </p>
+            <BalanceNotice room={data} />
             <div className="mt-5">
-              <RoomAction room={data} />
+              <RoomAction room={data} code={code} />
             </div>
+            <details className="mt-5 text-sm text-muted">
+              <summary className="flex cursor-pointer items-center gap-1.5 text-faint hover:text-cream">
+                <Info className="size-4" aria-hidden />
+                Ticket terms
+              </summary>
+              <ul className="mt-3 list-disc space-y-1.5 pl-5">
+                <li>Access lasts until the room closes ({shortDate(data.endsAt)}).</li>
+                <li>Not a subscription. You pay once for this room only.</li>
+                <li>
+                  {data.platformFeeBps / 100}% of the ticket is the platform fee, already included.
+                  No other charges.
+                </li>
+                <li>
+                  Full refund if the room closes before you get in or your seat cannot be honoured.
+                </li>
+              </ul>
+            </details>
           </div>
         </aside>
       </div>
+
+      {data.suggestions.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-display text-2xl">Rooms where you would fit right now</h2>
+          <p className="mt-1 text-muted">
+            These rooms have space for people looking for what you are.
+          </p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {data.suggestions.map((room) => (
+              <RoomCard key={room.id} room={room} />
+            ))}
+          </div>
+        </section>
+      )}
     </article>
+  );
+};
+
+const BalanceNotice = ({ room }: { room: RoomDetail }) => {
+  if (!room.balance || room.isHost) return null;
+  return room.balance.ok ? (
+    <p className="mt-4 flex gap-2 rounded-xl bg-success/10 p-3 text-sm text-success">
+      <Scale className="mt-0.5 size-4 shrink-0" aria-hidden />
+      This room is balanced for the people you want to meet.
+    </p>
+  ) : (
+    <p className="mt-4 flex gap-2 rounded-xl bg-raised p-3 text-sm text-muted">
+      <Scale className="mt-0.5 size-4 shrink-0 text-amber" aria-hidden />
+      {room.balance.message}
+    </p>
   );
 };
 
@@ -130,41 +243,46 @@ const Fact = ({
   </div>
 );
 
-const RoomAction = ({ room }: { room: RoomDetail }) => {
+const RoomAction = ({ room, code }: { room: RoomDetail; code: string | undefined }) => {
   const { session, me } = useAuth();
   const location = useLocation();
+  const here = `${location.pathname}${location.search}`;
   const application = room.myApplication;
 
   if (room.isHost) {
     return (
-      <LinkButton to={`/host/rooms/${room.id}`} className="w-full">
-        Manage this room
-      </LinkButton>
+      <div className="space-y-3">
+        <LinkButton to={`/host/rooms/${room.id}`} className="w-full">
+          Manage this room
+        </LinkButton>
+        {!room.upcoming && (
+          <LinkButton to={`/rooms/${room.id}/space`} variant="ghost" className="w-full">
+            Enter the room
+          </LinkButton>
+        )}
+      </div>
     );
   }
   if (!session) {
     return (
-      <LinkButton to={`/login?next=${encodeURIComponent(location.pathname)}`} className="w-full">
-        Sign in to apply
+      <LinkButton to={`/login?next=${encodeURIComponent(here)}`} className="w-full">
+        Sign in to {room.upcoming ? 'join the waitlist' : 'apply'}
       </LinkButton>
     );
   }
   if (me && !me.onboarded) {
     return (
-      <LinkButton
-        to={`/onboarding?next=${encodeURIComponent(location.pathname)}`}
-        className="w-full"
-      >
-        Finish your profile to apply
+      <LinkButton to={`/onboarding?next=${encodeURIComponent(here)}`} className="w-full">
+        Finish your profile first
       </LinkButton>
     );
   }
-  if (application && !['withdrawn', 'expired'].includes(application.status)) {
+  if (room.upcoming) return <Waitlist room={room} />;
+  if (application && !['withdrawn', 'expired', 'left'].includes(application.status)) {
     return <ApplicationState application={application} />;
   }
-  if (room.seatsLeft === 0) {
+  if (room.seatsLeft === 0)
     return <p className="text-sm text-muted">This room is full right now.</p>;
-  }
   return (
     <>
       {application && (
@@ -172,8 +290,42 @@ const RoomAction = ({ room }: { room: RoomDetail }) => {
           <ApplicationBadge status={application.status} />
         </div>
       )}
-      <ApplyForm roomId={room.id} />
+      <ApplyForm room={room} code={code} />
     </>
+  );
+};
+
+const Waitlist = ({ room }: { room: RoomDetail }) => {
+  const queryClient = useQueryClient();
+  const toggle = useMutation({
+    mutationFn: () =>
+      room.onWaitlist
+        ? api.delete(`/v1/rooms/${room.id}/waitlist`)
+        : api.post(`/v1/rooms/${room.id}/waitlist`),
+    onSuccess: () => {
+      toast.success(
+        room.onWaitlist ? 'Removed from the waitlist' : 'We will tell you the moment it opens',
+      );
+      return queryClient.invalidateQueries({ queryKey: ['room', room.id] });
+    },
+    onError: toastError,
+  });
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted">
+        Opens {shortDate(room.startsAt)}. {room.waitlistCount}{' '}
+        {room.waitlistCount === 1 ? 'person is' : 'people are'} waiting.
+      </p>
+      <Button
+        className="w-full"
+        variant={room.onWaitlist ? 'ghost' : 'primary'}
+        loading={toggle.isPending}
+        onClick={() => toggle.mutate()}
+      >
+        <BellRing className="size-4" aria-hidden />
+        {room.onWaitlist ? 'Leave the waitlist' : 'Join the waitlist'}
+      </Button>
+    </div>
   );
 };
 
@@ -186,7 +338,7 @@ const ApplicationState = ({ application }: { application: MyApplication }) => {
       toast.success('Application withdrawn');
       return queryClient.invalidateQueries();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   return (
@@ -198,7 +350,9 @@ const ApplicationState = ({ application }: { application: MyApplication }) => {
 
       {application.status === 'pending' && (
         <>
-          <p className="text-sm text-muted">The host is reviewing applications.</p>
+          <p className="text-sm text-muted">
+            {application.admissionNote ?? 'The host is reviewing applications.'}
+          </p>
           <Button
             variant="ghost"
             className="w-full"
@@ -228,7 +382,7 @@ const ApplicationState = ({ application }: { application: MyApplication }) => {
       )}
 
       {application.status === 'joined' && (
-        <LinkButton to={`/rooms/${application.roomId}/lobby`} className="w-full">
+        <LinkButton to={`/rooms/${application.roomId}/space`} className="w-full">
           Enter room
         </LinkButton>
       )}
@@ -238,25 +392,49 @@ const ApplicationState = ({ application }: { application: MyApplication }) => {
           The host chose other applicants for this room. You have not been charged.
         </p>
       )}
+      {application.status === 'removed' && (
+        <p className="text-sm text-muted">
+          You were removed from this room for breaking the rules.
+        </p>
+      )}
     </div>
   );
 };
 
-const ApplyForm = ({ roomId }: { roomId: string }) => {
+const ApplyForm = ({ room, code }: { room: RoomDetail; code: string | undefined }) => {
   const queryClient = useQueryClient();
-  const form = useForm({ resolver: zodResolver(applyInput), defaultValues: { message: '' } });
+  const form = useForm({
+    resolver: zodResolver(applyInput),
+    defaultValues: { message: '', inviteCode: code ?? '' },
+  });
 
   const apply = useMutation({
-    mutationFn: (body: { message: string }) => api.post(`/v1/rooms/${roomId}/applications`, body),
-    onSuccess: () => {
-      toast.success('Application sent to the host');
+    mutationFn: (body: { message: string; inviteCode?: string | undefined }) =>
+      api.post<MyApplication>(`/v1/rooms/${room.id}/applications`, {
+        message: body.message,
+        ...(body.inviteCode ? { inviteCode: body.inviteCode } : {}),
+      }),
+    onSuccess: (result) => {
+      toast.success(
+        result.status === 'accepted'
+          ? 'You have a seat. Pay to enter.'
+          : 'Application sent to the host',
+      );
       return queryClient.invalidateQueries();
     },
-    onError: (error) => toast.error(error.message),
+    onError: toastError,
   });
 
   return (
     <form onSubmit={form.handleSubmit((values) => apply.mutate(values))} className="space-y-4">
+      {room.inviteCodeRequired && !code && (
+        <Field label="Invite code" error={form.formState.errors.inviteCode?.message}>
+          <input
+            className="w-full rounded-xl border border-line bg-surface px-4 py-3 font-mono tracking-widest uppercase focus:border-amber focus:outline-none"
+            {...form.register('inviteCode')}
+          />
+        </Field>
+      )}
       <Field
         label="Why this room?"
         error={form.formState.errors.message?.message}
@@ -268,77 +446,40 @@ const ApplyForm = ({ roomId }: { roomId: string }) => {
         />
       </Field>
       <Button type="submit" className="w-full" loading={apply.isPending}>
-        Apply to join
+        {room.admission === 'instant' ? 'Get a seat' : 'Apply to join'}
       </Button>
     </form>
   );
 };
 
-export const LobbyPage = () => {
+/** Old links pointed at the lobby; the room space replaced it. */
+export const LobbyRedirect = () => {
   const { id = '' } = useParams();
-  const lobby = useQuery({
-    queryKey: ['lobby', id],
-    queryFn: () => api.get<Lobby>(`/v1/rooms/${id}/lobby`),
+  return <Navigate to={`/rooms/${id}/space`} replace />;
+};
+
+/** `/join/CODE` share links. */
+export const JoinByCodePage = () => {
+  const { code = '' } = useParams();
+  const found = useQuery({
+    queryKey: ['by-code', code],
+    queryFn: () => api.get<{ roomId: string }>(`/v1/rooms/by-code/${encodeURIComponent(code)}`),
+    retry: false,
   });
-
-  if (lobby.isPending) return <Spinner />;
-  if (lobby.isError) return <ErrorNotice error={lobby.error} />;
-
-  const { title, yourAlias, members, endsAt } = lobby.data;
-
+  if (found.isPending) return <Spinner />;
+  if (found.isError) {
+    return (
+      <EmptyState
+        title="That invite code did not work"
+        body="Check it with the host. Codes are eight letters and numbers."
+        action={<LinkButton to="/">Explore rooms</LinkButton>}
+      />
+    );
+  }
   return (
-    <div className="mx-auto max-w-3xl">
-      <Link
-        to="/my-rooms"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted hover:text-cream"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        My rooms
-      </Link>
-      <h1 className="font-display text-4xl leading-tight md:text-5xl">{title}</h1>
-      <p className="mt-2 text-muted">
-        {yourAlias ? (
-          <>
-            You are here as <span className="font-medium text-cream">{yourAlias}</span>.
-          </>
-        ) : (
-          'You are hosting this room.'
-        )}
-        {endsAt && ` ${timeLeft(endsAt)}.`}
-      </p>
-
-      <section className="mt-8 rounded-2xl border border-line bg-surface p-6">
-        <h2 className="flex items-center gap-2 font-display text-2xl">
-          <Sparkles className="size-5 text-amber" aria-hidden />
-          Conversation opens soon
-        </h2>
-        <p className="mt-2 text-muted">
-          Your seat is confirmed. Group chat and identity reveals are the next features to arrive in
-          rooms.
-        </p>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-4 font-display text-2xl">
-          In the room <span className="text-faint">({members.length})</span>
-        </h2>
-        {members.length === 0 ? (
-          <p className="text-muted">Nobody has joined yet.</p>
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {members.map((member) => (
-              <li
-                key={member.alias}
-                className="flex items-center gap-3 rounded-xl border border-line p-3"
-              >
-                <AuraAvatar seed={member.alias} />
-                <span>{member.alias}</span>
-                {member.alias === yourAlias && <Badge tone="ember">You</Badge>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
+    <Navigate
+      to={`/rooms/${found.data.roomId}?code=${encodeURIComponent(code.toUpperCase())}`}
+      replace
+    />
   );
 };

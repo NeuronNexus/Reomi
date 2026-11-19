@@ -73,7 +73,8 @@ const requireMember = async (ctx: Ctx, community: CommunityRow, userId: string) 
 };
 
 const isModerator = (membership: MemberRow | null) =>
-  membership?.status === 'active' && (membership.role === 'owner' || membership.role === 'moderator');
+  membership?.status === 'active' &&
+  (membership.role === 'owner' || membership.role === 'moderator');
 
 const toCommunity = (
   row: CommunityRow,
@@ -97,13 +98,19 @@ export const listCommunities = async (
   query: z.infer<typeof communityListQuery>,
   viewerId?: string,
 ) => {
-  const mine = query.mine && viewerId
-    ? sql`exists (select 1 from community_members m where m.community_id = ${communities.id}
+  const mine =
+    query.mine && viewerId
+      ? sql`exists (select 1 from community_members m where m.community_id = ${communities.id}
         and m.user_id = ${viewerId} and m.status in ('active', 'pending'))`
-    : undefined;
+      : undefined;
   const where = and(
     query.topic ? eq(communities.topic, query.topic) : undefined,
-    query.q ? or(ilike(communities.name, likeTerm(query.q)), ilike(communities.tagline, likeTerm(query.q))) : undefined,
+    query.q
+      ? or(
+          ilike(communities.name, likeTerm(query.q)),
+          ilike(communities.tagline, likeTerm(query.q)),
+        )
+      : undefined,
     mine,
   );
   const [rows, [total]] = await Promise.all([
@@ -116,20 +123,28 @@ export const listCommunities = async (
       .offset(pageOffset(query)),
     ctx.db.select({ value: count() }).from(communities).where(where),
   ]);
-  const memberships = viewerId && rows.length
-    ? await ctx.db
-        .select()
-        .from(communityMembers)
-        .where(
-          and(
-            eq(communityMembers.userId, viewerId),
-            inArray(communityMembers.communityId, rows.map((r) => r.community.id)),
-          ),
-        )
-    : [];
+  const memberships =
+    viewerId && rows.length
+      ? await ctx.db
+          .select()
+          .from(communityMembers)
+          .where(
+            and(
+              eq(communityMembers.userId, viewerId),
+              inArray(
+                communityMembers.communityId,
+                rows.map((r) => r.community.id),
+              ),
+            ),
+          )
+      : [];
   return {
     items: rows.map((row) =>
-      toCommunity(row.community, row, memberships.find((m) => m.communityId === row.community.id) ?? null),
+      toCommunity(
+        row.community,
+        row,
+        memberships.find((m) => m.communityId === row.community.id) ?? null,
+      ),
     ),
     total: total?.value ?? 0,
     page: query.page,
@@ -137,7 +152,11 @@ export const listCommunities = async (
   };
 };
 
-export const getCommunity = async (ctx: Ctx, slug: string, viewerId?: string): Promise<CommunityDetail> => {
+export const getCommunity = async (
+  ctx: Ctx,
+  slug: string,
+  viewerId?: string,
+): Promise<CommunityDetail> => {
   const [row] = await ctx.db
     .select({ community: communities, members: memberCountSql, posts: postCountSql })
     .from(communities)
@@ -149,7 +168,12 @@ export const getCommunity = async (ctx: Ctx, slug: string, viewerId?: string): P
     const [pending] = await ctx.db
       .select({ value: count() })
       .from(communityMembers)
-      .where(and(eq(communityMembers.communityId, row.community.id), eq(communityMembers.status, 'pending')));
+      .where(
+        and(
+          eq(communityMembers.communityId, row.community.id),
+          eq(communityMembers.status, 'pending'),
+        ),
+      );
     pendingRequests = pending?.value ?? 0;
   }
   return {
@@ -172,7 +196,10 @@ export const createCommunity = async (ctx: Ctx, userId: string, input: CreateCom
   const base = slugify(input.name);
   let slug = base;
   for (let attempt = 2; ; attempt += 1) {
-    const [taken] = await ctx.db.select({ id: communities.id }).from(communities).where(eq(communities.slug, slug));
+    const [taken] = await ctx.db
+      .select({ id: communities.id })
+      .from(communities)
+      .where(eq(communities.slug, slug));
     if (!taken) break;
     slug = `${base}-${attempt}`;
   }
@@ -201,7 +228,8 @@ export const createCommunity = async (ctx: Ctx, userId: string, input: CreateCom
       return { slug: community!.slug };
     });
   } catch (error) {
-    if (isUniqueViolation(error)) throw conflict('community_name_taken', 'A community with that name exists');
+    if (isUniqueViolation(error))
+      throw conflict('community_name_taken', 'A community with that name exists');
     throw error;
   }
 };
@@ -214,7 +242,8 @@ export const joinCommunity = async (
 ) => {
   const community = await bySlug(ctx, slug);
   const existing = await membershipOf(ctx, community.id, userId);
-  if (existing?.status === 'banned') throw forbidden('forbidden', 'You cannot rejoin this community');
+  if (existing?.status === 'banned')
+    throw forbidden('forbidden', 'You cannot rejoin this community');
   if (existing) return { status: existing.status };
   const status: MemberRow['status'] = community.visibility === 'open' ? 'active' : 'pending';
   try {
@@ -226,7 +255,8 @@ export const joinCommunity = async (
       status,
     });
   } catch (error) {
-    if (isUniqueViolation(error)) throw conflict('display_name_taken', 'Someone here already uses that name');
+    if (isUniqueViolation(error))
+      throw conflict('display_name_taken', 'Someone here already uses that name');
     throw error;
   }
   if (status === 'pending') {
@@ -240,11 +270,15 @@ export const joinCommunity = async (
           inArray(communityMembers.role, ['owner', 'moderator']),
         ),
       );
-    await notify(ctx, mods.map((m) => m.userId), {
-      kind: 'community_request',
-      title: `${input.displayName} asked to join ${community.name}`,
-      link: `/c/${community.slug}/members`,
-    });
+    await notify(
+      ctx,
+      mods.map((m) => m.userId),
+      {
+        kind: 'community_request',
+        title: `${input.displayName} asked to join ${community.name}`,
+        link: `/c/${community.slug}/members`,
+      },
+    );
   }
   return { status };
 };
@@ -254,7 +288,11 @@ export const leaveCommunity = async (ctx: Ctx, slug: string, userId: string) => 
   const membership = await membershipOf(ctx, community.id, userId);
   if (!membership || membership.status === 'banned') return;
   if (membership.role === 'owner') {
-    throw new AppError(409, 'conflict', 'Owners cannot leave. Make someone else a moderator first.');
+    throw new AppError(
+      409,
+      'conflict',
+      'Owners cannot leave. Make someone else a moderator first.',
+    );
   }
   await ctx.db.delete(communityMembers).where(eq(communityMembers.id, membership.id));
 };
@@ -274,7 +312,10 @@ const memberAvatars = async (ctx: Ctx, members: MemberRow[]) => {
     .select({ id: profiles.id, avatarPath: profiles.avatarPath })
     .from(profiles)
     .where(inArray(profiles.id, userIds));
-  const urls = await signPaths(ctx, rows.map((r) => r.avatarPath));
+  const urls = await signPaths(
+    ctx,
+    rows.map((r) => r.avatarPath),
+  );
   const byMember = new Map<string, string>();
   for (const member of members) {
     if (!member.useProfilePhoto) continue;
@@ -333,10 +374,14 @@ export const updateMember = async (
     .where(and(eq(communityMembers.id, memberId), eq(communityMembers.communityId, community.id)));
   if (!target) throw notFound('Member');
   if (target.role === 'owner') throw forbidden('forbidden', 'The owner cannot be changed');
-  if (patch.role && membership.role !== 'owner') throw forbidden('forbidden', 'Only the owner can appoint moderators');
+  if (patch.role && membership.role !== 'owner')
+    throw forbidden('forbidden', 'Only the owner can appoint moderators');
   await ctx.db
     .update(communityMembers)
-    .set({ ...(patch.role ? { role: patch.role } : {}), ...(patch.status ? { status: patch.status } : {}) })
+    .set({
+      ...(patch.role ? { role: patch.role } : {}),
+      ...(patch.status ? { status: patch.status } : {}),
+    })
     .where(eq(communityMembers.id, target.id));
   if (target.status === 'pending' && patch.status === 'active') {
     await notify(ctx, [target.userId], {
@@ -383,8 +428,14 @@ export const buildPosts = async (
     .orderBy(desc(posts.createdAt))
     .limit(limit);
   const [mediaMap, avatars] = await Promise.all([
-    loadMedia(ctx, rows.flatMap((row) => row.post.mediaIds)),
-    memberAvatars(ctx, rows.map((row) => row.member)),
+    loadMedia(
+      ctx,
+      rows.flatMap((row) => row.post.mediaIds),
+    ),
+    memberAvatars(
+      ctx,
+      rows.map((row) => row.member),
+    ),
   ]);
   return rows.map((row) => ({
     id: row.post.id,
@@ -399,7 +450,10 @@ export const buildPosts = async (
     likeCount: row.likeCount,
     commentCount: row.commentCount,
     likedByYou: row.liked,
-    canDelete: row.post.authorId === viewerId || row.viewerRole === 'owner' || row.viewerRole === 'moderator',
+    canDelete:
+      row.post.authorId === viewerId ||
+      row.viewerRole === 'owner' ||
+      row.viewerRole === 'moderator',
     createdAt: iso(row.post.createdAt),
   }));
 };
@@ -412,10 +466,20 @@ export const listPosts = async (
 ) => {
   const before = query.before ? lt(posts.createdAt, new Date(query.before)) : undefined;
   if (scope.kind === 'community') {
-    return buildPosts(ctx, and(eq(posts.communityId, scope.communityId), before), viewerId, query.limit);
+    return buildPosts(
+      ctx,
+      and(eq(posts.communityId, scope.communityId), before),
+      viewerId,
+      query.limit,
+    );
   }
   if (scope.kind === 'reels') {
-    return buildPosts(ctx, and(myCommunitiesSql(scope.userId), eq(posts.kind, 'reel'), before), viewerId, query.limit);
+    return buildPosts(
+      ctx,
+      and(myCommunitiesSql(scope.userId), eq(posts.kind, 'reel'), before),
+      viewerId,
+      query.limit,
+    );
   }
   return buildPosts(ctx, and(myCommunitiesSql(scope.userId), before), viewerId, query.limit);
 };
@@ -431,20 +495,32 @@ export const communityPosts = async (
   return listPosts(ctx, { kind: 'community', communityId: community.id }, viewerId, query);
 };
 
-export const createPost = async (ctx: Ctx, slug: string, profile: Profile, input: CreatePostInput) => {
+export const createPost = async (
+  ctx: Ctx,
+  slug: string,
+  profile: Profile,
+  input: CreatePostInput,
+) => {
   const community = await bySlug(ctx, slug);
   const membership = await requireMember(ctx, community, profile.id);
   assertNotMuted(profile);
   if (input.body) {
     const verdict = scanCommunityText(input.body);
     if (verdict.verdict === 'block') {
-      await enforce(ctx, { userId: profile.id, context: 'post', excerpt: input.body, communityId: community.id }, verdict);
+      await enforce(
+        ctx,
+        { userId: profile.id, context: 'post', excerpt: input.body, communityId: community.id },
+        verdict,
+      );
     }
   }
   const id = await ctx.db.transaction(async (tx) => {
     const files = await claimMedia(tx, profile.id, input.mediaIds, 'post');
     const videos = files.filter((f) => f.contentType.startsWith('video/'));
-    if ((input.kind === 'video' || input.kind === 'reel') && (videos.length !== 1 || files.length !== 1)) {
+    if (
+      (input.kind === 'video' || input.kind === 'reel') &&
+      (videos.length !== 1 || files.length !== 1)
+    ) {
       throw new AppError(400, 'media_invalid', 'Videos and reels take exactly one video');
     }
     if (input.kind === 'photo' && videos.length > 0) {
@@ -488,11 +564,19 @@ export const deletePost = async (ctx: Ctx, postId: string, viewerId: string) => 
 
 export const setLike = async (ctx: Ctx, postId: string, viewerId: string, liked: boolean) => {
   await postWithAccess(ctx, postId, viewerId);
-  if (liked) await ctx.db.insert(postLikes).values({ postId, userId: viewerId }).onConflictDoNothing();
-  else await ctx.db.delete(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.userId, viewerId)));
+  if (liked)
+    await ctx.db.insert(postLikes).values({ postId, userId: viewerId }).onConflictDoNothing();
+  else
+    await ctx.db
+      .delete(postLikes)
+      .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, viewerId)));
 };
 
-export const listComments = async (ctx: Ctx, postId: string, viewerId: string): Promise<Comment[]> => {
+export const listComments = async (
+  ctx: Ctx,
+  postId: string,
+  viewerId: string,
+): Promise<Comment[]> => {
   const { membership } = await postWithAccess(ctx, postId, viewerId);
   const rows = await ctx.db
     .select({ comment: postComments, member: communityMembers })
@@ -501,7 +585,10 @@ export const listComments = async (ctx: Ctx, postId: string, viewerId: string): 
     .where(and(eq(postComments.postId, postId), isNull(postComments.removedAt)))
     .orderBy(asc(postComments.createdAt))
     .limit(200);
-  const avatars = await memberAvatars(ctx, rows.map((r) => r.member));
+  const avatars = await memberAvatars(
+    ctx,
+    rows.map((r) => r.member),
+  );
   return rows.map(({ comment, member }) => ({
     id: comment.id,
     body: comment.body,
@@ -516,9 +603,15 @@ export const createComment = async (ctx: Ctx, postId: string, profile: Profile, 
   assertNotMuted(profile);
   const verdict = scanCommunityText(body);
   if (verdict.verdict === 'block') {
-    await enforce(ctx, { userId: profile.id, context: 'comment', excerpt: body, communityId: community.id }, verdict);
+    await enforce(
+      ctx,
+      { userId: profile.id, context: 'comment', excerpt: body, communityId: community.id },
+      verdict,
+    );
   }
-  await ctx.db.insert(postComments).values({ postId, memberId: membership.id, authorId: profile.id, body });
+  await ctx.db
+    .insert(postComments)
+    .values({ postId, memberId: membership.id, authorId: profile.id, body });
   if (post.authorId !== profile.id) {
     await notify(ctx, [post.authorId], {
       kind: 'comment',
@@ -537,12 +630,19 @@ export const deleteComment = async (ctx: Ctx, commentId: string, viewerId: strin
   if (row.authorId !== viewerId && !isModerator(membership)) {
     throw forbidden('forbidden', 'You can delete only your own comments');
   }
-  await ctx.db.update(postComments).set({ removedAt: new Date() }).where(eq(postComments.id, commentId));
+  await ctx.db
+    .update(postComments)
+    .set({ removedAt: new Date() })
+    .where(eq(postComments.id, commentId));
 };
 
 /* Stories ---------------------------------------------------------------------------------- */
 
-export const listStories = async (ctx: Ctx, viewerId: string, slug?: string): Promise<StoryGroup[]> => {
+export const listStories = async (
+  ctx: Ctx,
+  viewerId: string,
+  slug?: string,
+): Promise<StoryGroup[]> => {
   let scope;
   if (slug) {
     const community = await bySlug(ctx, slug);
@@ -553,7 +653,11 @@ export const listStories = async (ctx: Ctx, viewerId: string, slug?: string): Pr
       where user_id = ${viewerId} and status = 'active')`;
   }
   const rows = await ctx.db
-    .select({ story: stories, member: communityMembers, community: { slug: communities.slug, name: communities.name } })
+    .select({
+      story: stories,
+      member: communityMembers,
+      community: { slug: communities.slug, name: communities.name },
+    })
     .from(stories)
     .innerJoin(communityMembers, eq(communityMembers.id, stories.memberId))
     .innerJoin(communities, eq(communities.id, stories.communityId))
@@ -561,8 +665,14 @@ export const listStories = async (ctx: Ctx, viewerId: string, slug?: string): Pr
     .orderBy(asc(stories.createdAt))
     .limit(300);
   const [mediaMap, avatars] = await Promise.all([
-    loadMedia(ctx, rows.map((r) => r.story.mediaId)),
-    memberAvatars(ctx, rows.map((r) => r.member)),
+    loadMedia(
+      ctx,
+      rows.map((r) => r.story.mediaId),
+    ),
+    memberAvatars(
+      ctx,
+      rows.map((r) => r.member),
+    ),
   ]);
   const groups = new Map<string, StoryGroup>();
   for (const row of rows) {
@@ -586,7 +696,9 @@ export const listStories = async (ctx: Ctx, viewerId: string, slug?: string): Pr
     });
   }
   // Most recent storytellers first.
-  return [...groups.values()].sort((a, b) => b.stories.at(-1)!.createdAt.localeCompare(a.stories.at(-1)!.createdAt));
+  return [...groups.values()].sort((a, b) =>
+    b.stories.at(-1)!.createdAt.localeCompare(a.stories.at(-1)!.createdAt),
+  );
 };
 
 export const createStory = async (
@@ -601,7 +713,11 @@ export const createStory = async (
   if (input.caption) {
     const verdict = scanCommunityText(input.caption);
     if (verdict.verdict === 'block') {
-      await enforce(ctx, { userId: profile.id, context: 'post', excerpt: input.caption, communityId: community.id }, verdict);
+      await enforce(
+        ctx,
+        { userId: profile.id, context: 'post', excerpt: input.caption, communityId: community.id },
+        verdict,
+      );
     }
   }
   await ctx.db.transaction(async (tx) => {
@@ -626,14 +742,31 @@ export const reportContent = async (
 ) => {
   if (input.targetType === 'post') {
     const { post, community } = await postWithAccess(ctx, input.targetId, reporterId);
-    await report(ctx, { reporterId, userId: post.authorId, excerpt: post.body || '(media post)', context: 'post', communityId: community.id, reason: input.reason });
+    await report(ctx, {
+      reporterId,
+      userId: post.authorId,
+      excerpt: post.body || '(media post)',
+      context: 'post',
+      communityId: community.id,
+      reason: input.reason,
+    });
     return;
   }
   if (input.targetType === 'comment') {
-    const [comment] = await ctx.db.select().from(postComments).where(eq(postComments.id, input.targetId));
+    const [comment] = await ctx.db
+      .select()
+      .from(postComments)
+      .where(eq(postComments.id, input.targetId));
     if (!comment) throw notFound('Comment');
     const { community } = await postWithAccess(ctx, comment.postId, reporterId);
-    await report(ctx, { reporterId, userId: comment.authorId, excerpt: comment.body, context: 'comment', communityId: community.id, reason: input.reason });
+    await report(ctx, {
+      reporterId,
+      userId: comment.authorId,
+      excerpt: comment.body,
+      context: 'comment',
+      communityId: community.id,
+      reason: input.reason,
+    });
     return;
   }
   const [message] = await ctx.db.select().from(messages).where(eq(messages.id, input.targetId));
@@ -641,5 +774,12 @@ export const reportContent = async (
   const { canSubscribe } = await import('./space.service');
   const channel = message.roomId ? `room:${message.roomId}` : `thread:${message.threadId}`;
   if (!(await canSubscribe(ctx, reporterId, channel))) throw notFound('Message');
-  await report(ctx, { reporterId, userId: message.senderId, excerpt: message.body, context: message.roomId ? 'room' : 'thread', roomId: message.roomId, reason: input.reason });
+  await report(ctx, {
+    reporterId,
+    userId: message.senderId,
+    excerpt: message.body,
+    context: message.roomId ? 'room' : 'thread',
+    roomId: message.roomId,
+    reason: input.reason,
+  });
 };

@@ -127,8 +127,9 @@ const ownedRoom = async (ctx: Pick<Ctx, 'db'>, roomId: string, hostId: string) =
 };
 
 /** The fairness rule: a group room's ticket may exceed the plan's published reference by the cap. */
-export const maxTicketFor = (plan: Pick<typeof plans.$inferSelect, 'referenceTicketPaise' | 'ticketCapBps'>) =>
-  Math.floor((plan.referenceTicketPaise * (10_000 + plan.ticketCapBps)) / 10_000);
+export const maxTicketFor = (
+  plan: Pick<typeof plans.$inferSelect, 'referenceTicketPaise' | 'ticketCapBps'>,
+) => Math.floor((plan.referenceTicketPaise * (10_000 + plan.ticketCapBps)) / 10_000);
 
 export const createRoom = async (ctx: Ctx, hostId: string, input: CreateRoomInput) => {
   const [plan] = await ctx.db
@@ -151,7 +152,11 @@ export const createRoom = async (ctx: Ctx, hostId: string, input: CreateRoomInpu
     scheduledFor = new Date(input.scheduledFor);
     const ahead = scheduledFor.getTime() - Date.now();
     if (ahead < 5 * 60_000 || ahead > 60 * 86_400_000) {
-      throw new AppError(400, 'validation_failed', 'Schedule the opening between 5 minutes and 60 days from now');
+      throw new AppError(
+        400,
+        'validation_failed',
+        'Schedule the opening between 5 minutes and 60 days from now',
+      );
     }
   }
 
@@ -415,29 +420,38 @@ export const decideApplication = async (
     return { room, application, accepted: true };
   });
 
-  await notify(ctx, [outcome.application.userId], outcome.accepted
-    ? {
-        kind: 'accepted',
-        title: `You were accepted into ${outcome.room.title}`,
-        body: `Pay ${formatPaise(outcome.room.ticketPricePaise)} within ${ctx.config.PAYMENT_WINDOW_HOURS} hours to take your seat.`,
-        link: `/rooms/${outcome.room.id}`,
-      }
-    : {
-        kind: 'rejected',
-        title: `Not this time: ${outcome.room.title}`,
-        body: 'The host chose other applicants. You were not charged.',
-        link: '/',
-      });
+  await notify(
+    ctx,
+    [outcome.application.userId],
+    outcome.accepted
+      ? {
+          kind: 'accepted',
+          title: `You were accepted into ${outcome.room.title}`,
+          body: `Pay ${formatPaise(outcome.room.ticketPricePaise)} within ${ctx.config.PAYMENT_WINDOW_HOURS} hours to take your seat.`,
+          link: `/rooms/${outcome.room.id}`,
+        }
+      : {
+          kind: 'rejected',
+          title: `Not this time: ${outcome.room.title}`,
+          body: 'The host chose other applicants. You were not charged.',
+          link: '/',
+        },
+  );
 };
 
 /** Ends a room early. Ratings open for its members straight away. */
 export const endRoom = async (ctx: Ctx, roomId: string, hostId: string) => {
   const room = await ownedRoom(ctx, roomId, hostId);
-  if (!isRoomLive(room) && !isRoomUpcoming(room)) throw conflict('room_not_open', 'This room is not running');
+  if (!isRoomLive(room) && !isRoomUpcoming(room))
+    throw conflict('room_not_open', 'This room is not running');
   const now = new Date();
   await ctx.db
     .update(rooms)
-    .set({ status: 'closed', endsAt: now, ...(room.startsAt && room.startsAt > now ? { startsAt: now } : {}) })
+    .set({
+      status: 'closed',
+      endsAt: now,
+      ...(room.startsAt && room.startsAt > now ? { startsAt: now } : {}),
+    })
     .where(eq(rooms.id, roomId));
   ctx.hub.publish(roomChannel(roomId), { kind: 'members' });
   invalidateHostCache();

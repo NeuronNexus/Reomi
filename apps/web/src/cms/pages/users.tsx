@@ -113,7 +113,7 @@ export const UsersPage = ({ me }: { me: Me }) => {
         />
         {users.data && users.data.items.length > 0 && (
           <>
-            <Table head={['User', 'Status', 'Host', 'Last seen', 'Joined', '']}>
+            <Table head={['User', 'Status', 'Host', 'Strikes', 'Last seen', 'Joined', '']}>
               {users.data.items.map((user) => (
                 <tr key={user.id}>
                   <Cell>
@@ -134,6 +134,13 @@ export const UsersPage = ({ me }: { me: Me }) => {
                     ) : (
                       <span className="text-muted">-</span>
                     )}
+                  </Cell>
+                  <Cell
+                    className={
+                      user.strikes > 0 ? 'text-bad tabular-nums' : 'text-muted tabular-nums'
+                    }
+                  >
+                    {user.strikes}
                   </Cell>
                   <Cell className="whitespace-nowrap">{relative(user.lastSeenAt)}</Cell>
                   <Cell className="whitespace-nowrap">{date(user.createdAt)}</Cell>

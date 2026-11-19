@@ -73,7 +73,8 @@ export class SupabaseStorage implements MediaStorage {
       });
     } catch (error) {
       // Already existing is the normal case after the first boot.
-      const status = (error as AppError).details as { payload?: { statusCode?: string } } | undefined;
+      const status = (error as AppError).details as
+        { payload?: { statusCode?: string } } | undefined;
       if (status?.payload?.statusCode !== '409') throw error;
     }
   }
@@ -124,7 +125,9 @@ export class LocalStorage implements MediaStorage {
     return `${body}.${mac}`;
   }
 
-  verify(token: string): { path: string; contentType: string; mode: 'put' | 'get'; exp: number } | null {
+  verify(
+    token: string,
+  ): { path: string; contentType: string; mode: 'put' | 'get'; exp: number } | null {
     const [body, mac] = token.split('.');
     if (!body || !mac) return null;
     const expected = createHmac('sha256', this.secret).update(body).digest();

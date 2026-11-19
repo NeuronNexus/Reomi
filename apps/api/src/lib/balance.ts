@@ -95,7 +95,7 @@ export const explainBlock = (blockedFor: readonly Group[]): string => {
 export const mutuallyCompatible = (a: Person, b: Person): boolean =>
   Boolean(
     a.gender &&
-      b.gender &&
-      a.wants.includes(GENDER_GROUP[b.gender]) &&
-      b.wants.includes(GENDER_GROUP[a.gender]),
+    b.gender &&
+    a.wants.includes(GENDER_GROUP[b.gender]) &&
+    b.wants.includes(GENDER_GROUP[a.gender]),
   );

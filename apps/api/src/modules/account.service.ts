@@ -22,10 +22,11 @@ export const toMe = async (ctx: Ctx, { profile, host }: AuthContext): Promise<Me
     interestedIn: profile.interestedIn as Me['interestedIn'],
     bio: profile.bio,
     city: profile.city,
-    avatarUrl: profile.avatarPath ? avatars.get(profile.avatarPath) ?? null : null,
+    avatarUrl: profile.avatarPath ? (avatars.get(profile.avatarPath) ?? null) : null,
     role: profile.role,
     onboarded: isOnboarded(profile),
-    mutedUntil: profile.mutedUntil && profile.mutedUntil > new Date() ? iso(profile.mutedUntil) : null,
+    mutedUntil:
+      profile.mutedUntil && profile.mutedUntil > new Date() ? iso(profile.mutedUntil) : null,
     strikes,
     host: host
       ? { status: host.status, displayName: host.displayName, reviewNote: host.reviewNote }

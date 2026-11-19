@@ -258,7 +258,9 @@ describe('plans and features', () => {
 
   it('marks unbuilt features as coming soon rather than selling them as live', async () => {
     const { id, features } = await h.plan('premium');
-    expect(features.find((f: { key: string }) => f.key === 'activities_advanced').isLive).toBe(true);
+    expect(features.find((f: { key: string }) => f.key === 'activities_advanced').isLive).toBe(
+      true,
+    );
     await h.call('POST', '/v1/admin/features', admin, {
       key: 'video_rooms',
       name: 'Video rooms',

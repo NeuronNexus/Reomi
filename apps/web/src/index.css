@@ -92,3 +92,22 @@ body {
     transform: translate3d(3%, 3%, 0) scale(1.08);
   }
 }
+
+.story-progress {
+  width: 0;
+  animation: story-progress linear forwards;
+}
+
+@keyframes story-progress {
+  to {
+    width: 100%;
+  }
+}
+
+.reel-feed {
+  scroll-snap-type: y mandatory;
+}
+
+.reel-feed > * {
+  scroll-snap-align: start;
+}

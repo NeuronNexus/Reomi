@@ -3,6 +3,8 @@ import clsx from 'clsx';
 import {
   CreditCard,
   DoorOpen,
+  Flag,
+  UsersRound,
   Layers,
   LayoutDashboard,
   LoaderCircle,
@@ -17,6 +19,7 @@ import type { AdminStats, Me } from '@reomi/shared';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/client';
 import { HostsPage } from './pages/hosts';
+import { CommunitiesAdminPage, ModerationPage } from './pages/moderation';
 import { OverviewPage } from './pages/overview';
 import { PaymentsPage } from './pages/payments';
 import { PlansPage } from './pages/plans';
@@ -35,6 +38,8 @@ const NAV = [
   { to: '/admin/rooms', label: 'Rooms', icon: DoorOpen },
   { to: '/admin/plans', label: 'Plans & features', icon: Layers },
   { to: '/admin/payments', label: 'Payments', icon: CreditCard },
+  { to: '/admin/moderation', label: 'Moderation', icon: Flag },
+  { to: '/admin/communities', label: 'Communities', icon: UsersRound },
 ];
 
 const Shell = ({ me, onSignOut }: { me: Me; onSignOut: () => void }) => {
@@ -44,6 +49,7 @@ const Shell = ({ me, onSignOut }: { me: Me; onSignOut: () => void }) => {
   });
   const pendingHosts = stats.data?.hosts.pending ?? 0;
   const refundsDue = (stats.data?.revenue.refundsDuePaise ?? 0) > 0;
+  const openFlags = stats.data?.activity.openFlags ?? 0;
 
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
@@ -70,6 +76,11 @@ const Shell = ({ me, onSignOut }: { me: Me; onSignOut: () => void }) => {
               {to === '/admin/hosts' && pendingHosts > 0 && (
                 <span className="ml-auto rounded bg-accent px-1.5 text-xs font-medium text-white">
                   {pendingHosts}
+                </span>
+              )}
+              {to === '/admin/moderation' && openFlags > 0 && (
+                <span className="ml-auto rounded bg-bad px-1.5 text-xs font-medium text-white">
+                  {openFlags}
                 </span>
               )}
               {to === '/admin/payments' && refundsDue && (
@@ -99,6 +110,8 @@ const Shell = ({ me, onSignOut }: { me: Me; onSignOut: () => void }) => {
           <Route path="rooms" element={<RoomsPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="payments" element={<PaymentsPage />} />
+          <Route path="moderation" element={<ModerationPage />} />
+          <Route path="communities" element={<CommunitiesAdminPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>

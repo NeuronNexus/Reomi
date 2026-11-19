@@ -13,7 +13,9 @@ export const sweep = async (ctx: Ctx) => {
   const announce = await ctx.db
     .update(rooms)
     .set({ announcedAt: new Date() })
-    .where(and(isNotNull(rooms.startsAt), isNull(rooms.announcedAt), eq(rooms.visibility, 'public')))
+    .where(
+      and(isNotNull(rooms.startsAt), isNull(rooms.announcedAt), eq(rooms.visibility, 'public')),
+    )
     .returning();
   for (const room of announce) {
     const [host] = await ctx.db
@@ -25,12 +27,16 @@ export const sweep = async (ctx: Ctx) => {
       .from(follows)
       .where(eq(follows.followeeId, room.hostId));
     const upcoming = room.startsAt! > new Date();
-    await notify(ctx, followers.map((f) => f.userId), {
-      kind: 'host_room',
-      title: `${host?.name ?? 'A host you follow'} ${upcoming ? 'announced' : 'opened'} a new room`,
-      body: room.title,
-      link: `/rooms/${room.id}`,
-    });
+    await notify(
+      ctx,
+      followers.map((f) => f.userId),
+      {
+        kind: 'host_room',
+        title: `${host?.name ?? 'A host you follow'} ${upcoming ? 'announced' : 'opened'} a new room`,
+        body: room.title,
+        link: `/rooms/${room.id}`,
+      },
+    );
   }
 
   const opened = await ctx.db
@@ -50,12 +56,16 @@ export const sweep = async (ctx: Ctx) => {
       .select({ userId: roomWaitlist.userId })
       .from(roomWaitlist)
       .where(eq(roomWaitlist.roomId, room.id));
-    await notify(ctx, waiting.map((w) => w.userId), {
-      kind: 'room_open',
-      title: `${room.title} is open`,
-      body: 'You were on the waitlist. Apply before the seats go.',
-      link: `/rooms/${room.id}`,
-    });
+    await notify(
+      ctx,
+      waiting.map((w) => w.userId),
+      {
+        kind: 'room_open',
+        title: `${room.title} is open`,
+        body: 'You were on the waitlist. Apply before the seats go.',
+        link: `/rooms/${room.id}`,
+      },
+    );
   }
 
   const ended = await ctx.db
@@ -74,12 +84,16 @@ export const sweep = async (ctx: Ctx) => {
       .select({ userId: applications.userId })
       .from(applications)
       .where(and(eq(applications.roomId, room.id), eq(applications.status, 'joined')));
-    await notify(ctx, members.map((m) => m.userId), {
-      kind: 'rate_host',
-      title: `${room.title} has ended`,
-      body: 'How was it? Rate your host to help others choose.',
-      link: `/rooms/${room.id}/space`,
-    });
+    await notify(
+      ctx,
+      members.map((m) => m.userId),
+      {
+        kind: 'rate_host',
+        title: `${room.title} has ended`,
+        body: 'How was it? Rate your host to help others choose.',
+        link: `/rooms/${room.id}/space`,
+      },
+    );
   }
 
   // Expired seat holds free seats in instant rooms; offer them to the queue.

@@ -18,8 +18,12 @@ const planForm = adminPlanInput
     durationDays: true,
     capacity: true,
     sortOrder: true,
+    referenceTicketPaise: true,
+    ticketCapBps: true,
   })
   .extend({
+    referenceRupees: z.coerce.number<string>().min(1, 'At least ₹1'),
+    capPercent: z.coerce.number<string>().min(0).max(100),
     priceRupees: z.coerce.number<string>().min(1, 'At least ₹1'),
     feePercent: z.coerce.number<string>().min(0).max(100, 'At most 100%'),
     durationDays: z.coerce.number<string>().int().min(1).max(365),
@@ -30,10 +34,18 @@ const planForm = adminPlanInput
 type PlanFormInput = z.input<typeof planForm>;
 type PlanFormValues = z.output<typeof planForm>;
 
-const toPayload = ({ priceRupees, feePercent, ...values }: PlanFormValues) => ({
+const toPayload = ({
+  priceRupees,
+  feePercent,
+  referenceRupees,
+  capPercent,
+  ...values
+}: PlanFormValues) => ({
   ...values,
   pricePaise: Math.round(priceRupees * 100),
   platformFeeBps: Math.round(feePercent * 100),
+  referenceTicketPaise: Math.round(referenceRupees * 100),
+  ticketCapBps: Math.round(capPercent * 100),
 });
 
 export const PlansPage = () => {
@@ -225,6 +237,8 @@ const PlanEditor = ({ plan, onClose }: { plan: AdminPlan | null; onClose: () => 
       durationDays: plan ? String(plan.durationDays) : '',
       capacity: plan ? String(plan.capacity) : '',
       sortOrder: plan ? String(plan.sortOrder) : '100',
+      referenceRupees: plan ? String(plan.referenceTicketPaise / 100) : '300',
+      capPercent: plan ? String(plan.ticketCapBps / 100) : '10',
       isActive: plan?.isActive ?? true,
     },
   });
@@ -273,6 +287,12 @@ const PlanEditor = ({ plan, onClose }: { plan: AdminPlan | null; onClose: () => 
           </Field>
           <Field label="Display order" error={errors.sortOrder?.message}>
             <Input type="number" {...form.register('sortOrder')} />
+          </Field>
+          <Field label="Reference ticket (₹)" error={errors.referenceRupees?.message}>
+            <Input type="number" step="0.01" {...form.register('referenceRupees')} />
+          </Field>
+          <Field label="Ticket cap above reference (%)" error={errors.capPercent?.message}>
+            <Input type="number" step="0.01" {...form.register('capPercent')} />
           </Field>
         </div>
         <label className="flex items-center gap-2">

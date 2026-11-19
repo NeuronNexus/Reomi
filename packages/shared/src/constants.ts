@@ -174,7 +174,11 @@ export const ACTIVITY_LIBRARY: {
   { kind: 'prompt', title: 'Which song would play when you walk into a room?', options: [] },
   { kind: 'this_or_that', title: 'Mountains or beaches?', options: ['Mountains', 'Beaches'] },
   { kind: 'this_or_that', title: 'Chai or coffee?', options: ['Chai', 'Coffee'] },
-  { kind: 'this_or_that', title: 'Plan everything or go with the flow?', options: ['Plan', 'Flow'] },
+  {
+    kind: 'this_or_that',
+    title: 'Plan everything or go with the flow?',
+    options: ['Plan', 'Flow'],
+  },
   { kind: 'this_or_that', title: 'Early bird or night owl?', options: ['Early bird', 'Night owl'] },
   {
     kind: 'poll',

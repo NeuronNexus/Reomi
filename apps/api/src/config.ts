@@ -53,7 +53,11 @@ const envSchema = z
     PAYMENT_WINDOW_HOURS: z.coerce.number().int().min(1).max(168).default(48),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === 'production' && env.PAYMENT_PROVIDER === 'mock' && !env.ALLOW_DEMO_PAYMENTS) {
+    if (
+      env.NODE_ENV === 'production' &&
+      env.PAYMENT_PROVIDER === 'mock' &&
+      !env.ALLOW_DEMO_PAYMENTS
+    ) {
       ctx.addIssue({
         code: 'custom',
         path: ['PAYMENT_PROVIDER'],

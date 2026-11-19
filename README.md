@@ -103,10 +103,10 @@ Do not add a `railway.toml`. Railway has deprecated config files: new services c
 
 Deploy `apps/web`, which includes the CMS at `/admin`, with the variables from its `.env.example`. Variables are read at build time, so redeploy after changing them.
 
-| Host             | Root directory  | Build command                       | Output          |
-| ---------------- | --------------- | ----------------------------------- | --------------- |
+| Host             | Root directory  | Build command                    | Output          |
+| ---------------- | --------------- | -------------------------------- | --------------- |
 | Cloudflare Pages | repository root | `pnpm --filter @reomi/web build` | `apps/web/dist` |
-| Vercel           | `apps/web`      | detected                            | detected        |
+| Vercel           | `apps/web`      | detected                         | detected        |
 
 Then add the final URL to `CORS_ORIGINS` on the API.
 

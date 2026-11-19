@@ -345,7 +345,9 @@ export const threads = pgTable(
     uniqueIndex('threads_whisper_unique')
       .on(table.roomId, table.userA, table.userB)
       .where(sql`kind = 'whisper'`),
-    uniqueIndex('threads_dm_unique').on(table.userA, table.userB).where(sql`kind = 'dm'`),
+    uniqueIndex('threads_dm_unique')
+      .on(table.userA, table.userB)
+      .where(sql`kind = 'dm'`),
     index('threads_user_a_idx').on(table.userA),
     index('threads_user_b_idx').on(table.userB),
     check('threads_ordered_pair', sql`${table.userA} < ${table.userB}`),

@@ -142,7 +142,8 @@ export const CheckoutProvider = ({ children }: { children: ReactNode }) => {
             <h2 className="mt-2 font-display text-3xl">{formatPaise(mockOrder.amountPaise)}</h2>
             <p className="mt-1 text-sm text-muted">{mockOrder.description}</p>
             <p className="mt-4 rounded-lg bg-raised p-3 text-sm text-muted">
-              Reomi is in demo mode. No money moves and no card is needed. Real checkout uses Razorpay.
+              Reomi is in demo mode. No money moves and no card is needed. Real checkout uses
+              Razorpay.
             </p>
             <div className="mt-5 flex gap-3">
               <Button variant="ghost" className="flex-1" onClick={() => closeMock(false)}>

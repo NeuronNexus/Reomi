@@ -39,8 +39,10 @@ export const isRoomLive = (
   room.endsAt > now;
 
 /** Paid and announced but not open yet. */
-export const isRoomUpcoming = (room: Pick<Room, 'status' | 'startsAt'>, now = new Date()): boolean =>
-  room.status === 'open' && room.startsAt !== null && room.startsAt > now;
+export const isRoomUpcoming = (
+  room: Pick<Room, 'status' | 'startsAt'>,
+  now = new Date(),
+): boolean => room.status === 'open' && room.startsAt !== null && room.startsAt > now;
 
 /** Over, either by time or because the host ended it. Ratings open from here. */
 export const isRoomEnded = (room: Pick<Room, 'status' | 'endsAt' | 'startsAt'>, now = new Date()) =>

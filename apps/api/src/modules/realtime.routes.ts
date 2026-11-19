@@ -93,8 +93,10 @@ export const localMediaRoutes: FastifyPluginAsync = async (app: FastifyInstance)
   const storage = app.storage;
   if (!(storage instanceof LocalStorage)) return;
 
-  app.addContentTypeParser('*', { parseAs: 'buffer', bodyLimit: 60 * 1024 * 1024 }, (_req, body, done) =>
-    done(null, body),
+  app.addContentTypeParser(
+    '*',
+    { parseAs: 'buffer', bodyLimit: 60 * 1024 * 1024 },
+    (_req, body, done) => done(null, body),
   );
 
   app.put<{ Params: { token: string } }>(

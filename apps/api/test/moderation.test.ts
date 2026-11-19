@@ -13,17 +13,24 @@ const context = (overrides: Partial<ScanContext> = {}): ScanContext => ({
   ...overrides,
 });
 
-const verdictOf = (text: string, overrides?: Partial<ScanContext>) => scanMessage(text, context(overrides));
+const verdictOf = (text: string, overrides?: Partial<ScanContext>) =>
+  scanMessage(text, context(overrides));
 
 describe('identity disclosure', () => {
   it('lets ordinary conversation through', () => {
-    expect(verdictOf('Mountains for me, always. What about you, Quiet Heron?').verdict).toBe('allow');
+    expect(verdictOf('Mountains for me, always. What about you, Quiet Heron?').verdict).toBe(
+      'allow',
+    );
     expect(verdictOf('I think the host picked a great question').verdict).toBe('allow');
   });
 
   it('blocks naming another participant as a strike', () => {
     const result = verdictOf('Pretty sure Quiet Heron is actually Rohan from Bandra');
-    expect(result).toMatchObject({ verdict: 'block', reason: 'identity_other', severity: 'strong' });
+    expect(result).toMatchObject({
+      verdict: 'block',
+      reason: 'identity_other',
+      severity: 'strong',
+    });
   });
 
   it('catches full names, surnames, emails and spaced-out spellings', () => {
@@ -42,8 +49,14 @@ describe('identity disclosure', () => {
   });
 
   it('holds back self-disclosure and contact details without a strike', () => {
-    expect(verdictOf('I am Ananya btw')).toMatchObject({ reason: 'identity_self', severity: 'soft' });
-    expect(verdictOf('call me on +91 98765 43210')).toMatchObject({ reason: 'contact_info', severity: 'soft' });
+    expect(verdictOf('I am Ananya btw')).toMatchObject({
+      reason: 'identity_self',
+      severity: 'soft',
+    });
+    expect(verdictOf('call me on +91 98765 43210')).toMatchObject({
+      reason: 'contact_info',
+      severity: 'soft',
+    });
     expect(verdictOf('my insta is @night.owl_22')).toMatchObject({ reason: 'contact_info' });
     expect(verdictOf('add me on instagram.com/someone')).toMatchObject({ reason: 'contact_info' });
   });
@@ -59,8 +72,14 @@ describe('identity disclosure', () => {
 
 describe('community harassment', () => {
   it('blocks slut-shaming and appearance insults', () => {
-    expect(scanCommunityText('what a slut')).toMatchObject({ verdict: 'block', severity: 'strong' });
-    expect(scanCommunityText('you look ugly in this')).toMatchObject({ verdict: 'block', severity: 'soft' });
+    expect(scanCommunityText('what a slut')).toMatchObject({
+      verdict: 'block',
+      severity: 'strong',
+    });
+    expect(scanCommunityText('you look ugly in this')).toMatchObject({
+      verdict: 'block',
+      severity: 'soft',
+    });
   });
 
   it('lets kind feedback through', () => {

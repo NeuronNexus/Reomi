@@ -1,5 +1,6 @@
 import { and, eq, inArray, ne, sql } from 'drizzle-orm';
-import { applications, profiles, rooms } from '../db/schema';
+import type { rooms } from '../db/schema';
+import { applications, profiles } from '../db/schema';
 import type { Assessment, Person } from '../lib/balance';
 import { assessAdmission, explainBlock } from '../lib/balance';
 import type { DbLike } from './common';

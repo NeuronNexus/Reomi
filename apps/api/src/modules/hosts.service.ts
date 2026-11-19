@@ -1,6 +1,13 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { HostProfile, HostStats, HostSummary, LeaderboardEntry, Review } from '@reomi/shared';
-import { applications, follows, hostRatings, hostVerifications, reveals, rooms } from '../db/schema';
+import {
+  applications,
+  follows,
+  hostRatings,
+  hostVerifications,
+  reveals,
+  rooms,
+} from '../db/schema';
 import { scanCommunityText } from '../lib/moderation';
 import { AppError, conflict, forbidden, notFound } from '../lib/errors';
 import type { Ctx } from './common';
@@ -45,7 +52,12 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
  * participants who formed a confirmed connection, completed rooms, consistency, rule-keeping and
  * engagement. What a host paid for their plan plays no part.
  */
-export const scoreHost = (row: Omit<HostRow, 'userId' | 'publicId' | 'displayName' | 'about' | 'status' | 'firstStart' | 'dist' | 'followers'>) => {
+export const scoreHost = (
+  row: Omit<
+    HostRow,
+    'userId' | 'publicId' | 'displayName' | 'about' | 'status' | 'firstStart' | 'dist' | 'followers'
+  >,
+) => {
   const bayes = (PRIOR_MEAN * PRIOR_WEIGHT + (row.avg ?? 0) * row.n) / (PRIOR_WEIGHT + row.n);
   const rating = clamp01((bayes - 1) / 4);
   const connectionRate = row.participants > 0 ? clamp01((row.verified / row.participants) * 4) : 0;
@@ -54,7 +66,12 @@ export const scoreHost = (row: Omit<HostRow, 'userId' | 'publicId' | 'displayNam
   const reliability = clamp01(1 - row.strikes * 0.25);
   const engagement = row.participants > 0 ? clamp01(row.messages / row.participants / 40) : 0;
   const score =
-    40 * rating + 25 * connectionRate + 10 * completed + 10 * consistency + 10 * reliability + 5 * engagement;
+    40 * rating +
+    25 * connectionRate +
+    10 * completed +
+    10 * consistency +
+    10 * reliability +
+    5 * engagement;
   return Math.round(score * 10) / 10;
 };
 
@@ -190,7 +207,8 @@ export const hostRecords = async (ctx: Pick<Ctx, 'db'>): Promise<Map<string, Hos
     const badges: HostSummary['badges'] = [];
     if (row.status === 'verified') badges.push('verified');
     if (rank !== null && rank <= 10 && row.n >= 3) badges.push('top_host');
-    if (row.completed >= 5 && row.n >= 20 && bayes >= 4.5 && row.verified >= 10) badges.push('celebrity');
+    if (row.completed >= 5 && row.n >= 20 && bayes >= 4.5 && row.verified >= 10)
+      badges.push('celebrity');
     if (
       row.firstStart &&
       Date.now() - row.firstStart.getTime() < 60 * 86_400_000 &&
@@ -370,7 +388,11 @@ export const rateHost = async (
   if (input.comment) {
     const verdict = scanCommunityText(input.comment);
     if (verdict.verdict === 'block') {
-      await enforce(ctx, { userId: input.userId, context: 'rating', excerpt: input.comment, roomId: input.roomId }, verdict);
+      await enforce(
+        ctx,
+        { userId: input.userId, context: 'rating', excerpt: input.comment, roomId: input.roomId },
+        verdict,
+      );
     }
   }
   const inserted = await ctx.db

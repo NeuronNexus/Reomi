@@ -121,7 +121,9 @@ export const publicRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['catalogue'],
         response: {
-          200: z.array(z.object({ kind: z.string(), title: z.string(), options: z.array(z.string()) })),
+          200: z.array(
+            z.object({ kind: z.string(), title: z.string(), options: z.array(z.string()) }),
+          ),
         },
       },
     },
@@ -132,7 +134,11 @@ export const publicRoutes: FastifyPluginAsyncZod = async (app) => {
     '/rooms',
     {
       onRequest: [app.optionalAuth],
-      schema: { tags: ['rooms'], querystring: roomListQuery, response: { 200: paginated(roomCardDto) } },
+      schema: {
+        tags: ['rooms'],
+        querystring: roomListQuery,
+        response: { 200: paginated(roomCardDto) },
+      },
     },
     async (request) => rooms.listRooms(ctx, request.query, request.auth?.profile.id),
   );
@@ -392,7 +398,8 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: z.array(messageDto) },
       },
     },
-    async (request) => space.listRoomMessages(ctx, request.params.id, me(request).id, request.query),
+    async (request) =>
+      space.listRoomMessages(ctx, request.params.id, me(request).id, request.query),
   );
 
   app.post(
@@ -427,7 +434,11 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: { tags: ['space'], params: uuidParam, body: ratingInput, response: noContent },
     },
     async (request, reply) => {
-      await hosts.rateHost(ctx, { roomId: request.params.id, userId: me(request).id, ...request.body });
+      await hosts.rateHost(ctx, {
+        roomId: request.params.id,
+        userId: me(request).id,
+        ...request.body,
+      });
       return reply.status(204).send(null);
     },
   );
@@ -436,10 +447,19 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
     '/rooms/:id/reveals',
     {
       config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
-      schema: { tags: ['reveals'], params: uuidParam, body: revealRequestInput, response: noContent },
+      schema: {
+        tags: ['reveals'],
+        params: uuidParam,
+        body: revealRequestInput,
+        response: noContent,
+      },
     },
     async (request, reply) => {
-      await reveals.requestReveal(ctx, { roomId: request.params.id, userId: me(request).id, ...request.body });
+      await reveals.requestReveal(ctx, {
+        roomId: request.params.id,
+        userId: me(request).id,
+        ...request.body,
+      });
       return reply.status(204).send(null);
     },
   );
@@ -447,7 +467,12 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/reveals/:id/respond',
     {
-      schema: { tags: ['reveals'], params: uuidParam, body: revealRespondInput, response: noContent },
+      schema: {
+        tags: ['reveals'],
+        params: uuidParam,
+        body: revealRespondInput,
+        response: noContent,
+      },
     },
     async (request, reply) => {
       await reveals.respondToReveal(ctx, {
@@ -471,7 +496,12 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/reveals/:id/confirm',
     {
-      schema: { tags: ['reveals'], params: uuidParam, body: confirmConnectionInput, response: noContent },
+      schema: {
+        tags: ['reveals'],
+        params: uuidParam,
+        body: confirmConnectionInput,
+        response: noContent,
+      },
     },
     async (request, reply) => {
       await reveals.confirmConnection(ctx, request.params.id, me(request).id, request.body.stage);
@@ -482,9 +512,15 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/rooms/:id/whispers',
     {
-      schema: { tags: ['threads'], params: uuidParam, body: whisperInput, response: { 200: idOnly } },
+      schema: {
+        tags: ['threads'],
+        params: uuidParam,
+        body: whisperInput,
+        response: { 200: idOnly },
+      },
     },
-    async (request) => space.openWhisper(ctx, request.params.id, me(request).id, request.body.toAlias),
+    async (request) =>
+      space.openWhisper(ctx, request.params.id, me(request).id, request.body.toAlias),
   );
 
   app.post(
@@ -569,7 +605,9 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) =>
       reply
         .status(201)
-        .send(await space.sendThreadMessage(ctx, request.params.id, me(request), request.body.body)),
+        .send(
+          await space.sendThreadMessage(ctx, request.params.id, me(request), request.body.body),
+        ),
   );
 
   app.post(
@@ -740,7 +778,11 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/communities/:slug/stories',
     {
-      schema: { tags: ['communities'], params: slugParam, response: { 200: z.array(storyGroupDto) } },
+      schema: {
+        tags: ['communities'],
+        params: slugParam,
+        response: { 200: z.array(storyGroupDto) },
+      },
     },
     async (request) => communities.listStories(ctx, me(request).id, request.params.slug),
   );
@@ -749,7 +791,12 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
     '/communities/:slug/stories',
     {
       config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
-      schema: { tags: ['communities'], params: slugParam, body: createStoryInput, response: noContent },
+      schema: {
+        tags: ['communities'],
+        params: slugParam,
+        body: createStoryInput,
+        response: noContent,
+      },
     },
     async (request, reply) => {
       await communities.createStory(ctx, request.params.slug, me(request), request.body);
@@ -759,16 +806,38 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
 
   app.get(
     '/feed',
-    { schema: { tags: ['communities'], querystring: cursorQuery, response: { 200: z.array(postDto) } } },
+    {
+      schema: {
+        tags: ['communities'],
+        querystring: cursorQuery,
+        response: { 200: z.array(postDto) },
+      },
+    },
     async (request) =>
-      communities.listPosts(ctx, { kind: 'feed', userId: me(request).id }, me(request).id, request.query),
+      communities.listPosts(
+        ctx,
+        { kind: 'feed', userId: me(request).id },
+        me(request).id,
+        request.query,
+      ),
   );
 
   app.get(
     '/reels',
-    { schema: { tags: ['communities'], querystring: cursorQuery, response: { 200: z.array(postDto) } } },
+    {
+      schema: {
+        tags: ['communities'],
+        querystring: cursorQuery,
+        response: { 200: z.array(postDto) },
+      },
+    },
     async (request) =>
-      communities.listPosts(ctx, { kind: 'reels', userId: me(request).id }, me(request).id, request.query),
+      communities.listPosts(
+        ctx,
+        { kind: 'reels', userId: me(request).id },
+        me(request).id,
+        request.query,
+      ),
   );
 
   app.get(
@@ -806,7 +875,9 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
 
   app.get(
     '/posts/:id/comments',
-    { schema: { tags: ['communities'], params: uuidParam, response: { 200: z.array(commentDto) } } },
+    {
+      schema: { tags: ['communities'], params: uuidParam, response: { 200: z.array(commentDto) } },
+    },
     async (request) => communities.listComments(ctx, request.params.id, me(request).id),
   );
 
@@ -824,7 +895,9 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) =>
       reply
         .status(201)
-        .send(await communities.createComment(ctx, request.params.id, me(request), request.body.body)),
+        .send(
+          await communities.createComment(ctx, request.params.id, me(request), request.body.body),
+        ),
   );
 
   app.delete(
@@ -937,7 +1010,12 @@ export const hostRoutes: FastifyPluginAsyncZod = async (app) => {
       reply
         .status(201)
         .send(
-          await space.createActivity(ctx, request.params.id, currentUser(request).profile.id, request.body),
+          await space.createActivity(
+            ctx,
+            request.params.id,
+            currentUser(request).profile.id,
+            request.body,
+          ),
         ),
   );
 };

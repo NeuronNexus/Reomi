@@ -48,7 +48,7 @@ export const OverviewPage = () => {
     );
   }
 
-  const { users, hosts, rooms, revenue } = stats.data;
+  const { users, hosts, rooms, revenue, activity } = stats.data;
 
   return (
     <>
@@ -75,6 +75,32 @@ export const OverviewPage = () => {
           to="/admin/rooms"
         />
         <Tile label="Suspended users" value={users.suspended} />
+      </div>
+
+      <h2 className="mb-2 font-medium">Connection and safety</h2>
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Tile
+          label="Messages today"
+          value={activity.messages24h}
+          note="Across rooms, whispers and DMs"
+        />
+        <Tile
+          label="Mutual reveals"
+          value={activity.reveals}
+          note={`${activity.verifiedConnections} confirmed by both people`}
+        />
+        <Tile
+          label="Communities"
+          value={activity.communities}
+          note={`${activity.posts24h} posts today`}
+          to="/admin/communities"
+        />
+        <Tile
+          label="Open moderation flags"
+          value={activity.openFlags}
+          note="Blocked messages and reports"
+          to="/admin/moderation"
+        />
       </div>
 
       <h2 className="mb-2 font-medium">Money</h2>

@@ -7,6 +7,7 @@ import { ApiRequestError } from '@reomi/shared';
 import { App } from './App';
 import { AuthProvider } from './lib/auth';
 import { CheckoutProvider } from './lib/checkout';
+import { RealtimeProvider } from './lib/realtime';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -25,10 +26,12 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <CheckoutProvider>
-            <App />
-            <Toaster theme="dark" position="top-center" richColors />
-          </CheckoutProvider>
+          <RealtimeProvider>
+            <CheckoutProvider>
+              <App />
+              <Toaster theme="dark" position="top-center" richColors />
+            </CheckoutProvider>
+          </RealtimeProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

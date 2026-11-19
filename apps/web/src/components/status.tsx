@@ -11,6 +11,8 @@ const STATUS: Record<
   rejected: { label: 'Not this time', tone: 'danger' },
   withdrawn: { label: 'Withdrawn', tone: 'neutral' },
   expired: { label: 'Payment window ended', tone: 'danger' },
+  left: { label: 'You left', tone: 'neutral' },
+  removed: { label: 'Removed', tone: 'danger' },
 };
 
 const HOST_STATUS: typeof STATUS = {
@@ -20,6 +22,8 @@ const HOST_STATUS: typeof STATUS = {
   rejected: { label: 'Declined', tone: 'neutral' },
   withdrawn: { label: 'Withdrawn', tone: 'neutral' },
   expired: { label: 'Payment window ended', tone: 'danger' },
+  left: { label: 'Left', tone: 'neutral' },
+  removed: { label: 'Removed', tone: 'danger' },
 };
 
 export const ApplicationBadge = ({

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { ArrowLeft, Check, Clock3, Lock } from 'lucide-react';
+import { ArrowLeft, Check, Clock3, Copy, Lock, Scale, Share2 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -43,6 +43,7 @@ import { CheckoutCancelled, useCheckout } from '../lib/checkout';
 import { api } from '../lib/client';
 import { shortDate, timeLeft } from '../lib/format';
 import { CATEGORY_LABELS, GENDER_LABELS, INTEREST_LABELS } from '../lib/labels';
+import { toastError } from '../lib/upload';
 
 /* Host home --------------------------------------------------------------------------------- */
 
@@ -69,6 +70,7 @@ const usePayPlan = () => {
 
 const statusBadge = (room: HostRoom) => {
   if (room.status === 'pending_payment') return <Badge tone="ember">Awaiting payment</Badge>;
+  if (room.upcoming) return <Badge tone="ember">Scheduled</Badge>;
   return room.live ? <Badge tone="success">Live</Badge> : <Badge>Ended</Badge>;
 };
 
@@ -239,12 +241,15 @@ export const HostApplyPage = () => {
 
 /* Creating a room --------------------------------------------------------------------------- */
 
-const roomForm = createRoomInput.omit({ planId: true, ticketPricePaise: true }).extend({
-  ticketRupees: z.coerce
-    .number<string>('Enter an amount')
-    .min(1, 'Ticket must be at least ₹1')
-    .max(100_000, 'Ticket cannot exceed ₹1,00,000'),
-});
+const roomForm = createRoomInput
+  .omit({ planId: true, ticketPricePaise: true, scheduledFor: true })
+  .extend({
+    ticketRupees: z.coerce
+      .number<string>('Enter an amount')
+      .min(1, 'Ticket must be at least ₹1')
+      .max(100_000, 'Ticket cannot exceed ₹1,00,000'),
+    opensAt: z.string().optional(),
+  });
 
 type RoomFormInput = z.input<typeof roomForm>;
 type RoomFormValues = z.output<typeof roomForm>;
@@ -265,15 +270,21 @@ export const NewRoomPage = () => {
       description: '',
       category: 'dating',
       ticketRupees: '',
+      visibility: 'public',
+      admission: 'approval',
+      balanceMode: 'balanced',
+      opensAt: '',
     },
   });
+  const category = form.watch('category');
 
   const create = useMutation({
-    mutationFn: async ({ ticketRupees, ...values }: RoomFormValues) => {
+    mutationFn: async ({ ticketRupees, opensAt, ...values }: RoomFormValues) => {
       const created = await api.post<{ roomId: string; checkout: Checkout }>('/v1/host/rooms', {
         ...values,
         planId,
         ticketPricePaise: Math.round(ticketRupees * 100),
+        scheduledFor: opensAt ? new Date(opensAt).toISOString() : null,
       });
       await payPlan(created.checkout);
       return created.roomId;
@@ -343,17 +354,62 @@ export const NewRoomPage = () => {
           <Field
             label="Ticket price (₹)"
             error={errors.ticketRupees?.message}
-            hint={`Platform fee: ${plan.platformFeeBps / 100}% per ticket.`}
+            hint={`Up to ${formatPaise(plan.maxTicketPaise)} (reference ${formatPaise(plan.referenceTicketPaise)} + 10%). Platform fee ${plan.platformFeeBps / 100}%.`}
           >
-            <Input type="number" inputMode="numeric" min="1" {...form.register('ticketRupees')} />
+            <Input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max={plan.maxTicketPaise / 100}
+              {...form.register('ticketRupees')}
+            />
           </Field>
         </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            label="Who can find it"
+            hint="Private rooms are only reachable with your invite code."
+          >
+            <Select {...form.register('visibility')}>
+              <option value="public">Listed on Explore</option>
+              <option value="private">Private, invite code only</option>
+            </Select>
+          </Field>
+          <Field
+            label="How people get in"
+            hint="Instant: seats are offered automatically within the balance rules."
+          >
+            <Select {...form.register('admission')}>
+              <option value="approval">I review every request</option>
+              <option value="instant">Instant seats</option>
+            </Select>
+          </Field>
+        </div>
+        <Field
+          label="Interest balancing"
+          hint={
+            category === 'dating'
+              ? 'Dating rooms always balance who wants to meet whom. This cannot be turned off.'
+              : 'Keeps the room from tipping heavily toward one kind of seeker.'
+          }
+        >
+          <Select {...form.register('balanceMode')} disabled={category === 'dating'}>
+            <option value="balanced">Balanced admissions</option>
+            <option value="open">Off, admit anyone</option>
+          </Select>
+        </Field>
+        <Field
+          label="Open later (optional)"
+          hint="Scheduled rooms show on Explore as opening soon, with a waitlist."
+        >
+          <Input type="datetime-local" {...form.register('opensAt')} />
+        </Field>
         {create.isError && <ErrorNotice error={create.error} />}
         <Button type="submit" className="w-full" loading={create.isPending}>
           Pay {formatPaise(plan.pricePaise)} and open room
         </Button>
         <p className="text-center text-sm text-faint">
-          The room goes live as soon as the plan is paid.
+          The room goes live as soon as the plan is paid, or at the time you scheduled.
         </p>
       </form>
     </div>
@@ -373,6 +429,7 @@ const PlanCard = ({ plan, onChoose }: { plan: Plan; onChoose: () => void }) => (
     <p className="mt-1 text-sm text-muted">
       {plan.durationDays} days, up to {plan.capacity} people
     </p>
+    <p className="mt-1 text-sm text-faint">Tickets up to {formatPaise(plan.maxTicketPaise)}</p>
     <ul className="mt-5 flex-1 space-y-2.5 text-sm">
       {plan.features.map((feature) => (
         <li key={feature.key} className="flex items-start gap-2">
@@ -419,6 +476,15 @@ export const HostRoomPage = () => {
     mutationFn: async () => payPlan(await api.post<Checkout>(`/v1/host/rooms/${id}/checkout`)),
     onError: (error) => toast.error(error.message),
   });
+  const queryClient = useQueryClient();
+  const endRoom = useMutation({
+    mutationFn: () => api.post(`/v1/host/rooms/${id}/end`),
+    onSuccess: () => {
+      toast.success('Room ended. Members can now rate it.');
+      return queryClient.invalidateQueries();
+    },
+    onError: toastError,
+  });
 
   if (dashboard.isPending) return <Spinner />;
   if (dashboard.isError) return <ErrorNotice error={dashboard.error} />;
@@ -442,12 +508,28 @@ export const HostRoomPage = () => {
         }`}
         action={
           room.live ? (
-            <LinkButton to={`/rooms/${room.id}/lobby`} variant="ghost">
-              Open lobby
-            </LinkButton>
+            <div className="flex flex-wrap gap-2">
+              <LinkButton to={`/rooms/${room.id}/space`}>Enter room</LinkButton>
+              <Button
+                variant="danger"
+                loading={endRoom.isPending}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'End this room now? Chat closes and members are asked to rate it.',
+                    )
+                  )
+                    endRoom.mutate();
+                }}
+              >
+                End room
+              </Button>
+            </div>
           ) : undefined
         }
       />
+
+      {room.status !== 'pending_payment' && <ShareRoom room={room} />}
 
       {room.status === 'pending_payment' && (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ember/50 bg-surface p-5">
@@ -465,6 +547,13 @@ export const HostRoomPage = () => {
         <Stat
           label="Seats left"
           value={room.capacity - room.counts.joined - room.counts.accepted}
+        />
+        <Stat label="Waitlist" value={room.waitlistCount} />
+        <Stat label="Mutual reveals" value={room.connections.reveals} />
+        <Stat label="Confirmed connections" value={room.connections.verified} />
+        <Stat
+          label="Rating"
+          value={room.ratings.average ? `${room.ratings.average} (${room.ratings.count})` : '—'}
         />
       </dl>
 
@@ -532,11 +621,17 @@ const ApplicantRow = ({
           Seat held until {shortDate(applicant.paymentDueAt)}
         </p>
       )}
+      {applicant.status === 'pending' && !applicant.admissible && (
+        <p className="mt-3 flex gap-2 rounded-xl bg-raised p-3 text-sm text-muted">
+          <Scale className="mt-0.5 size-4 shrink-0 text-amber" aria-hidden />
+          {applicant.blockedReason} You can accept once the room balances.
+        </p>
+      )}
       {applicant.status === 'pending' && canDecide && (
         <div className="mt-4 flex gap-3">
           <Button
             loading={decide.isPending && decide.variables === 'accept'}
-            disabled={decide.isPending}
+            disabled={decide.isPending || !applicant.admissible}
             onClick={() => decide.mutate('accept')}
           >
             Accept
@@ -565,9 +660,79 @@ const Locked = ({ title }: { title: string }) => (
   </div>
 );
 
+const GROUP_LABELS = { women: 'Women', men: 'Men', non_binary: 'Non-binary' } as const;
+
+const BalancePanel = ({ room }: { room: HostRoomDashboard }) => {
+  const groups = room.balance.groups.filter((g) => g.demand > 0 || g.supply > 0);
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-5">
+      <h3 className="flex items-center gap-2 font-medium">
+        <Scale className="size-4 text-amber" aria-hidden />
+        Room balance
+        <Badge tone={room.balance.healthy ? 'success' : 'ember'}>
+          {room.balance.healthy ? 'Healthy' : 'Strained'}
+        </Badge>
+      </h3>
+      <p className="mt-1 text-sm text-faint">
+        {room.balanceMode === 'balanced'
+          ? 'Seekers of a group are paused when they outnumber that group by more than two to one.'
+          : 'Balancing is off for this room.'}
+      </p>
+      {groups.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">Nobody holds a seat yet.</p>
+      ) : (
+        <ul className="mt-3 space-y-2 text-sm">
+          {groups.map((g) => (
+            <li key={g.group} className="flex justify-between gap-3">
+              <span>{GROUP_LABELS[g.group]}</span>
+              <span className="text-muted">
+                {g.supply} here · {g.demand} looking
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+const ShareRoom = ({ room }: { room: HostRoomDashboard }) => {
+  const link = `${window.location.origin}/join/${room.inviteCode}`;
+  const copy = async (text: string, what: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${what} copied`);
+    } catch {
+      toast.error('Could not copy. Select it instead.');
+    }
+  };
+  return (
+    <div className="mb-8 flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface p-5">
+      <Share2 className="size-5 text-amber" aria-hidden />
+      <div className="min-w-48 flex-1">
+        <p className="font-medium">
+          {room.visibility === 'private'
+            ? 'Private room: share the code to let people in'
+            : 'Invite people'}
+        </p>
+        <p className="mt-1 font-mono text-lg tracking-widest">{room.inviteCode}</p>
+      </div>
+      <Button variant="ghost" className="px-4!" onClick={() => void copy(room.inviteCode, 'Code')}>
+        <Copy className="size-4" aria-hidden />
+        Code
+      </Button>
+      <Button variant="ghost" className="px-4!" onClick={() => void copy(link, 'Link')}>
+        <Copy className="size-4" aria-hidden />
+        Link
+      </Button>
+    </div>
+  );
+};
+
 const Insights = ({ room }: { room: HostRoomDashboard }) => (
   <aside className="space-y-4">
     <h2 className="font-display text-2xl">Insights</h2>
+    <BalancePanel room={room} />
 
     {room.entitlements.includes(FEATURE.analyticsDetailed) && room.demand ? (
       <div className="rounded-2xl border border-line bg-surface p-5">

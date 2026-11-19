@@ -70,12 +70,28 @@ export const roomAccess = async (ctx: Ctx, roomId: string, userId: string): Prom
 /** Real identities of everyone in the room, for the disclosure check. Never leaves the server. */
 const roomIdentities = async (ctx: Ctx, room: Room) => {
   const rows = await ctx.db
-    .select({ userId: profiles.id, fullName: profiles.fullName, email: profiles.email, city: profiles.city, alias: applications.alias })
+    .select({
+      userId: profiles.id,
+      fullName: profiles.fullName,
+      email: profiles.email,
+      city: profiles.city,
+      alias: applications.alias,
+    })
     .from(applications)
     .innerJoin(profiles, eq(profiles.id, applications.userId))
-    .where(and(eq(applications.roomId, room.id), inArray(applications.status, ['joined', 'accepted', 'left', 'removed'])));
+    .where(
+      and(
+        eq(applications.roomId, room.id),
+        inArray(applications.status, ['joined', 'accepted', 'left', 'removed']),
+      ),
+    );
   const [host] = await ctx.db
-    .select({ userId: profiles.id, fullName: profiles.fullName, email: profiles.email, city: profiles.city })
+    .select({
+      userId: profiles.id,
+      fullName: profiles.fullName,
+      email: profiles.email,
+      city: profiles.city,
+    })
     .from(profiles)
     .where(eq(profiles.id, room.hostId));
   const [hostName] = await ctx.db
@@ -99,7 +115,10 @@ export const loadActivities = async (
   const result = new Map<string, Activity>();
   if (ids.length === 0) return result;
   const [rows, responses] = await Promise.all([
-    ctx.db.select().from(roomActivities).where(inArray(roomActivities.id, [...ids])),
+    ctx.db
+      .select()
+      .from(roomActivities)
+      .where(inArray(roomActivities.id, [...ids])),
     ctx.db
       .select()
       .from(activityResponses)
@@ -108,7 +127,9 @@ export const loadActivities = async (
   ]);
   for (const activity of rows) {
     const mine = responses.filter((r) => r.activityId === activity.id);
-    const results = activity.options.map((_, index) => mine.filter((r) => r.choice === index).length);
+    const results = activity.options.map(
+      (_, index) => mine.filter((r) => r.choice === index).length,
+    );
     const own = viewerId ? mine.find((r) => r.userId === viewerId) : undefined;
     result.set(activity.id, {
       id: activity.id,
@@ -128,7 +149,11 @@ export const loadActivities = async (
 
 const SYSTEM_SENDER = { key: 'system', name: 'Reomi', role: 'system' as const, avatarUrl: null };
 
-const toMessage = (row: MessageRow, activities: Map<string, Activity>, avatarUrl: string | null = null): Message => ({
+const toMessage = (
+  row: MessageRow,
+  activities: Map<string, Activity>,
+  avatarUrl: string | null = null,
+): Message => ({
   id: row.id,
   roomId: row.roomId,
   threadId: row.threadId,
@@ -138,12 +163,12 @@ const toMessage = (row: MessageRow, activities: Map<string, Activity>, avatarUrl
     row.senderRole === 'system'
       ? SYSTEM_SENDER
       : {
-          key: row.senderRole === 'person' ? row.senderId ?? 'gone' : row.senderName,
+          key: row.senderRole === 'person' ? (row.senderId ?? 'gone') : row.senderName,
           name: row.senderName,
           role: row.senderRole,
           avatarUrl,
         },
-  activity: row.activityId ? activities.get(row.activityId) ?? null : null,
+  activity: row.activityId ? (activities.get(row.activityId) ?? null) : null,
   createdAt: iso(row.createdAt),
 });
 
@@ -160,7 +185,10 @@ export const listRoomMessages = async (
     .select()
     .from(messages)
     .where(
-      and(eq(messages.roomId, roomId), query.before ? lt(messages.createdAt, new Date(query.before)) : undefined),
+      and(
+        eq(messages.roomId, roomId),
+        query.before ? lt(messages.createdAt, new Date(query.before)) : undefined,
+      ),
     )
     .orderBy(desc(messages.createdAt))
     .limit(query.limit);
@@ -172,7 +200,12 @@ export const listRoomMessages = async (
   return rows.reverse().map((row) => toMessage(row, activities));
 };
 
-export const postSystemMessage = async (ctx: Ctx, roomId: string, body: string, kind: MessageRow['kind'] = 'system') => {
+export const postSystemMessage = async (
+  ctx: Ctx,
+  roomId: string,
+  body: string,
+  kind: MessageRow['kind'] = 'system',
+) => {
   const [row] = await ctx.db
     .insert(messages)
     .values({ roomId, senderName: 'Reomi', senderRole: 'system', kind, body })
@@ -180,25 +213,43 @@ export const postSystemMessage = async (ctx: Ctx, roomId: string, body: string, 
   ctx.hub.publish(roomChannel(roomId), { kind: 'message', message: toMessage(row!, new Map()) });
 };
 
-export const sendRoomMessage = async (ctx: Ctx, roomId: string, profile: Profile, body: string): Promise<Message> => {
+export const sendRoomMessage = async (
+  ctx: Ctx,
+  roomId: string,
+  profile: Profile,
+  body: string,
+): Promise<Message> => {
   const access = await roomAccess(ctx, roomId, profile.id);
-  if (!isRoomLive(access.room)) throw conflict('room_not_open', 'This room is not open for conversation');
+  if (!isRoomLive(access.room))
+    throw conflict('room_not_open', 'This room is not open for conversation');
   assertNotMuted(profile);
 
   const { people, aliases } = await roomIdentities(ctx, access.room);
   const verdict = scanMessage(body, {
     sender: profile,
-    others: [...people.entries()].filter(([id]) => id !== profile.id).map(([, identity]) => identity),
+    others: [...people.entries()]
+      .filter(([id]) => id !== profile.id)
+      .map(([, identity]) => identity),
     aliases,
     allowContact: false,
   });
   if (verdict.verdict === 'block') {
-    await enforce(ctx, { userId: profile.id, context: 'room', excerpt: body, roomId, isHost: access.isHost }, verdict);
+    await enforce(
+      ctx,
+      { userId: profile.id, context: 'room', excerpt: body, roomId, isHost: access.isHost },
+      verdict,
+    );
   }
 
   const [row] = await ctx.db
     .insert(messages)
-    .values({ roomId, senderId: profile.id, senderName: access.name, senderRole: access.role, body })
+    .values({
+      roomId,
+      senderId: profile.id,
+      senderName: access.name,
+      senderRole: access.role,
+      body,
+    })
     .returning();
   const message = toMessage(row!, new Map());
   ctx.hub.publish(roomChannel(roomId), { kind: 'message', message });
@@ -222,7 +273,9 @@ export const getSpace = async (ctx: Ctx, roomId: string, profile: Profile): Prom
       .from(hostRatings)
       .where(and(eq(hostRatings.roomId, roomId), eq(hostRatings.userId, profile.id))),
   ]);
-  const revealedAliases = new Set(revealList.filter((r) => r.status === 'accepted').map((r) => r.otherAlias));
+  const revealedAliases = new Set(
+    revealList.filter((r) => r.status === 'accepted').map((r) => r.otherAlias),
+  );
   const ended = isRoomEnded(room);
 
   return {
@@ -241,17 +294,25 @@ export const getSpace = async (ctx: Ctx, roomId: string, profile: Profile): Prom
       revealed: revealedAliases.has(member.alias),
       isYou: member.userId === profile.id,
     })),
-    activityKinds: ACTIVITY_KINDS.filter((kind) => room.entitlements.includes(ACTIVITY_FEATURE[kind])),
+    activityKinds: ACTIVITY_KINDS.filter((kind) =>
+      room.entitlements.includes(ACTIVITY_FEATURE[kind]),
+    ),
     reveals: revealList,
     canRate: !access.isHost && ended && rating.length === 0,
     rated: rating.length > 0,
-    mutedUntil: profile.mutedUntil && profile.mutedUntil > new Date() ? iso(profile.mutedUntil) : null,
+    mutedUntil:
+      profile.mutedUntil && profile.mutedUntil > new Date() ? iso(profile.mutedUntil) : null,
   };
 };
 
 /* Activities ------------------------------------------------------------------------------- */
 
-export const createActivity = async (ctx: Ctx, roomId: string, hostId: string, input: CreateActivityInput) => {
+export const createActivity = async (
+  ctx: Ctx,
+  roomId: string,
+  hostId: string,
+  input: CreateActivityInput,
+) => {
   const access = await roomAccess(ctx, roomId, hostId);
   if (!access.isHost) throw forbidden('forbidden', 'Only the host can start activities');
   if (!isRoomLive(access.room)) throw conflict('room_not_open', 'This room is not open');
@@ -295,7 +356,10 @@ export const respondToActivity = async (
   profile: Profile,
   input: { choice?: number | undefined; text?: string | undefined },
 ): Promise<Activity> => {
-  const [activity] = await ctx.db.select().from(roomActivities).where(eq(roomActivities.id, activityId));
+  const [activity] = await ctx.db
+    .select()
+    .from(roomActivities)
+    .where(eq(roomActivities.id, activityId));
   if (!activity) throw notFound('Activity');
   const access = await roomAccess(ctx, activity.roomId, profile.id);
   if (access.isHost) throw forbidden('forbidden', 'Hosts run activities rather than answer them');
@@ -308,12 +372,18 @@ export const respondToActivity = async (
     const { people, aliases } = await roomIdentities(ctx, access.room);
     const verdict = scanMessage(input.text, {
       sender: profile,
-      others: [...people.entries()].filter(([id]) => id !== profile.id).map(([, identity]) => identity),
+      others: [...people.entries()]
+        .filter(([id]) => id !== profile.id)
+        .map(([, identity]) => identity),
       aliases,
       allowContact: false,
     });
     if (verdict.verdict === 'block') {
-      await enforce(ctx, { userId: profile.id, context: 'activity', excerpt: input.text, roomId: activity.roomId }, verdict);
+      await enforce(
+        ctx,
+        { userId: profile.id, context: 'activity', excerpt: input.text, roomId: activity.roomId },
+        verdict,
+      );
     }
   } else if (input.choice === undefined || input.choice >= activity.options.length) {
     throw new AppError(400, 'validation_failed', 'Choose one of the options');
@@ -344,7 +414,13 @@ const aliasInRoom = async (ctx: Ctx, roomId: string, alias: string) => {
   const [row] = await ctx.db
     .select({ userId: applications.userId })
     .from(applications)
-    .where(and(eq(applications.roomId, roomId), eq(applications.alias, alias), eq(applications.status, 'joined')));
+    .where(
+      and(
+        eq(applications.roomId, roomId),
+        eq(applications.alias, alias),
+        eq(applications.status, 'joined'),
+      ),
+    );
   return row?.userId ?? null;
 };
 
@@ -373,11 +449,21 @@ export const openWhisper = async (ctx: Ctx, roomId: string, userId: string, toAl
   else otherId = await aliasInRoom(ctx, roomId, toAlias);
   if (!otherId || otherId === userId) throw notFound('Member');
   const [userA, userB] = orderedPair(userId, otherId);
-  await ctx.db.insert(threads).values({ kind: 'whisper', roomId, userA, userB }).onConflictDoNothing();
+  await ctx.db
+    .insert(threads)
+    .values({ kind: 'whisper', roomId, userA, userB })
+    .onConflictDoNothing();
   const [thread] = await ctx.db
     .select()
     .from(threads)
-    .where(and(eq(threads.kind, 'whisper'), eq(threads.roomId, roomId), eq(threads.userA, userA), eq(threads.userB, userB)));
+    .where(
+      and(
+        eq(threads.kind, 'whisper'),
+        eq(threads.roomId, roomId),
+        eq(threads.userA, userA),
+        eq(threads.userB, userB),
+      ),
+    );
   return { threadId: thread!.id };
 };
 
@@ -399,7 +485,12 @@ interface ThreadContext {
   thread: typeof threads.$inferSelect;
   otherId: string;
   you: { key: string; name: string; role: 'member' | 'host' | 'person' };
-  other: { key: string; name: string; role: 'member' | 'host' | 'person'; avatarPath: string | null };
+  other: {
+    key: string;
+    name: string;
+    role: 'member' | 'host' | 'person';
+    avatarPath: string | null;
+  };
   room: Room | null;
   revealed: boolean;
 }
@@ -413,9 +504,14 @@ const aliasOf = async (ctx: Ctx, room: Room, userId: string, hostName: string) =
   return { name: row?.alias ?? 'Former member', role: 'member' as const };
 };
 
-const threadContext = async (ctx: Ctx, threadId: string, userId: string): Promise<ThreadContext> => {
+const threadContext = async (
+  ctx: Ctx,
+  threadId: string,
+  userId: string,
+): Promise<ThreadContext> => {
   const [thread] = await ctx.db.select().from(threads).where(eq(threads.id, threadId));
-  if (!thread || (thread.userA !== userId && thread.userB !== userId)) throw notFound('Conversation');
+  if (!thread || (thread.userA !== userId && thread.userB !== userId))
+    throw notFound('Conversation');
   const otherId = thread.userA === userId ? thread.userB : thread.userA;
 
   if (thread.kind === 'whisper') {
@@ -450,7 +546,12 @@ const threadContext = async (ctx: Ctx, threadId: string, userId: string): Promis
     thread,
     otherId,
     you: { key: userId, name: firstName(me.fullName), role: 'person' },
-    other: { key: otherId, name: them?.fullName ?? 'Someone', role: 'person', avatarPath: them?.avatarPath ?? null },
+    other: {
+      key: otherId,
+      name: them?.fullName ?? 'Someone',
+      role: 'person',
+      avatarPath: them?.avatarPath ?? null,
+    },
     room: null,
     revealed: true,
   };
@@ -467,11 +568,17 @@ export const listThreads = async (ctx: Ctx, userId: string): Promise<Thread[]> =
   const last = rows.length
     ? await ctx.db.execute<{ thread_id: string; body: string }>(sql`
         select distinct on (thread_id) thread_id, body from messages
-        where thread_id in (${sql.join(rows.map((row) => sql`${row.id}`), sql`, `)})
+        where thread_id in (${sql.join(
+          rows.map((row) => sql`${row.id}`),
+          sql`, `,
+        )})
         order by thread_id, created_at desc`)
     : [];
   const lastByThread = new Map([...last].map((row) => [row.thread_id, row.body]));
-  const avatars = await signPaths(ctx, contexts.map((c) => c.other.avatarPath));
+  const avatars = await signPaths(
+    ctx,
+    contexts.map((c) => c.other.avatarPath),
+  );
   return contexts.map((c) => ({
     id: c.thread.id,
     kind: c.thread.kind,
@@ -482,7 +589,7 @@ export const listThreads = async (ctx: Ctx, userId: string): Promise<Thread[]> =
       key: c.other.key,
       name: c.other.name,
       role: c.other.role,
-      avatarUrl: c.other.avatarPath ? avatars.get(c.other.avatarPath) ?? null : null,
+      avatarUrl: c.other.avatarPath ? (avatars.get(c.other.avatarPath) ?? null) : null,
     },
     lastMessage: lastByThread.get(c.thread.id) ?? null,
     lastMessageAt: isoOrNull(c.thread.lastMessageAt),
@@ -507,19 +614,30 @@ export const listThreadMessages = async (
   const rows = await ctx.db
     .select()
     .from(messages)
-    .where(and(eq(messages.threadId, threadId), query.before ? lt(messages.createdAt, new Date(query.before)) : undefined))
+    .where(
+      and(
+        eq(messages.threadId, threadId),
+        query.before ? lt(messages.createdAt, new Date(query.before)) : undefined,
+      ),
+    )
     .orderBy(desc(messages.createdAt))
     .limit(query.limit);
   return rows.reverse().map((row) => toMessage(row, new Map()));
 };
 
-export const sendThreadMessage = async (ctx: Ctx, threadId: string, profile: Profile, body: string): Promise<Message> => {
+export const sendThreadMessage = async (
+  ctx: Ctx,
+  threadId: string,
+  profile: Profile,
+  body: string,
+): Promise<Message> => {
   const c = await threadContext(ctx, threadId, profile.id);
   assertNotMuted(profile);
 
   if (c.thread.kind === 'whisper') {
     const room = c.room!;
-    if (!isRoomLive(room)) throw conflict('room_not_open', 'This room is not open for conversation');
+    if (!isRoomLive(room))
+      throw conflict('room_not_open', 'This room is not open for conversation');
     // Both people must still be in the room.
     await roomAccess(ctx, room.id, profile.id);
     if (c.otherId !== room.hostId) await roomAccess(ctx, room.id, c.otherId);
@@ -527,12 +645,24 @@ export const sendThreadMessage = async (ctx: Ctx, threadId: string, profile: Pro
       const { people, aliases } = await roomIdentities(ctx, room);
       const verdict = scanMessage(body, {
         sender: profile,
-        others: [...people.entries()].filter(([id]) => id !== profile.id).map(([, identity]) => identity),
+        others: [...people.entries()]
+          .filter(([id]) => id !== profile.id)
+          .map(([, identity]) => identity),
         aliases,
         allowContact: false,
       });
       if (verdict.verdict === 'block') {
-        await enforce(ctx, { userId: profile.id, context: 'whisper', excerpt: body, roomId: room.id, isHost: room.hostId === profile.id }, verdict);
+        await enforce(
+          ctx,
+          {
+            userId: profile.id,
+            context: 'whisper',
+            excerpt: body,
+            roomId: room.id,
+            isHost: room.hostId === profile.id,
+          },
+          verdict,
+        );
       }
     }
   }
@@ -547,7 +677,10 @@ export const sendThreadMessage = async (ctx: Ctx, threadId: string, profile: Pro
       body,
     })
     .returning();
-  await ctx.db.update(threads).set({ lastMessageAt: row!.createdAt }).where(eq(threads.id, threadId));
+  await ctx.db
+    .update(threads)
+    .set({ lastMessageAt: row!.createdAt })
+    .where(eq(threads.id, threadId));
   const message = toMessage(row!, new Map());
   ctx.hub.publish(threadChannel(threadId), { kind: 'message', message });
   ctx.hub.publish(userChannel(c.otherId), { kind: 'threads' });

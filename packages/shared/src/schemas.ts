@@ -665,7 +665,10 @@ export const memberDto = z.object({
 });
 
 export const memberPatch = z
-  .object({ role: z.enum(['moderator', 'member']).optional(), status: memberStatusSchema.optional() })
+  .object({
+    role: z.enum(['moderator', 'member']).optional(),
+    status: memberStatusSchema.optional(),
+  })
   .refine((value) => value.role || value.status, 'Nothing to change');
 
 export const authorDto = z.object({

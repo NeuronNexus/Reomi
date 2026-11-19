@@ -34,9 +34,19 @@ const COMMON_WORDS = new Set(
     .filter(Boolean),
 );
 
-const LEET: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '@': 'a', $: 's', '7': 't' };
+const LEET: Record<string, string> = {
+  '0': 'o',
+  '1': 'i',
+  '3': 'e',
+  '4': 'a',
+  '5': 's',
+  '@': 'a',
+  $: 's',
+  '7': 't',
+};
 
-const normalise = (text: string): string => text.toLowerCase().normalize('NFKD').replace(/\p{M}/gu, '');
+const normalise = (text: string): string =>
+  text.toLowerCase().normalize('NFKD').replace(/\p{M}/gu, '');
 
 const deLeet = (text: string): string => text.replace(/[0134@$57]/g, (char) => LEET[char] ?? char);
 
