@@ -31,12 +31,28 @@ const toQueryString = (query: Record<string, unknown> = {}): string => {
   return text ? `?${text}` : '';
 };
 
+export interface ApiClientHooks {
+  /** Called around every request, for example to notice a sleeping server. */
+  onStart?: () => void;
+  onEnd?: () => void;
+}
+
 /** Browser client for the API. `getToken` is called per request so refreshed tokens are used. */
 export const createApiClient = (
   baseUrl: string,
   getToken: () => Promise<string | null>,
+  hooks: ApiClientHooks = {},
 ): ApiClient => {
   const request = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
+    hooks.onStart?.();
+    try {
+      return await send<T>(method, path, body);
+    } finally {
+      hooks.onEnd?.();
+    }
+  };
+
+  const send = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
     const token = await getToken();
     let response: Response;
     try {

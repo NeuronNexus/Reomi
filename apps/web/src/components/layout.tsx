@@ -10,9 +10,11 @@ import {
   UserRound,
   UsersRound,
 } from 'lucide-react';
+import { useSyncExternalStore } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { APP_NAME } from '@reomi/shared';
 import { useAuth } from '../lib/auth';
+import { serverWaking } from '../lib/client';
 import { useCreateRoomRoute } from '../lib/guards';
 import { useRealtime } from '../lib/realtime';
 import { AuraAvatar } from './aura';
@@ -32,6 +34,22 @@ const MOBILE_TABS = [
   { to: '/connections', label: 'Reveals', icon: Heart },
   { to: '/profile', label: 'You', icon: UserRound },
 ];
+
+const WakeBanner = () => {
+  const waking = useSyncExternalStore(serverWaking.subscribe, serverWaking.get);
+  if (!waking) return null;
+  return (
+    <div
+      role="status"
+      className="fixed inset-x-4 top-20 z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-amber/40 bg-surface/95 px-4 py-3 text-sm shadow-2xl backdrop-blur"
+    >
+      <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-amber" aria-hidden />
+      <span>
+        Waking the server up. On the free plan it naps when idle, so this can take up to a minute.
+      </span>
+    </div>
+  );
+};
 
 export const Layout = () => {
   const { session, me, signOut } = useAuth();
@@ -168,6 +186,7 @@ export const Layout = () => {
         </nav>
       </header>
 
+      <WakeBanner />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 md:py-12 lg:pb-12">
         <Outlet />
       </main>
