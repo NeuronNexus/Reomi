@@ -19,7 +19,9 @@
     "db:generate": "pnpm --filter @reomi/api db:generate",
     "db:migrate": "pnpm --filter @reomi/api db:migrate",
     "db:seed": "pnpm --filter @reomi/api db:seed",
-    "admin:grant": "pnpm --filter @reomi/api admin:grant"
+    "admin:grant": "pnpm --filter @reomi/api admin:grant",
+    "demo:seed": "pnpm --filter @reomi/seed-demo exec tsx index.ts",
+    "demo:reset": "pnpm --filter @reomi/seed-demo exec tsx index.ts reset"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

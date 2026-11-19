@@ -27,10 +27,14 @@ export const realtimeRoutes: FastifyPluginAsync = async (app: FastifyInstance) =
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(frame));
     };
 
+    request.log.info('Realtime socket opened');
+    send({ type: 'hello' });
     const authTimer = setTimeout(() => {
       if (!userId) socket.close(4401, 'Authenticate first');
     }, 10_000);
+    // Proxies drop idle sockets after about a minute; a small frame keeps the line warm.
     const ping = setInterval(() => send({ type: 'ping' }), 25_000);
+    socket.on('error', (err) => request.log.warn({ err }, 'Realtime socket error'));
 
     socket.on('message', (raw: Buffer) => {
       let frame: ClientFrame;
@@ -65,7 +69,7 @@ export const realtimeRoutes: FastifyPluginAsync = async (app: FastifyInstance) =
         }
         if (!userId || !frame.channel) return;
         if (frame.type === 'subscribe') {
-          if (subscribed.has(frame.channel)) return;
+          if (subscribed.has(frame.channel) || subscribed.size >= 100) return;
           if (await canSubscribe(ctx, userId, frame.channel)) {
             app.realtime.subscribe(frame.channel, socket);
             subscribed.add(frame.channel);
@@ -80,7 +84,8 @@ export const realtimeRoutes: FastifyPluginAsync = async (app: FastifyInstance) =
       })().catch((err: unknown) => request.log.warn({ err }, 'Realtime frame failed'));
     });
 
-    socket.on('close', () => {
+    socket.on('close', (code: number) => {
+      request.log.info({ code }, 'Realtime socket closed');
       clearTimeout(authTimer);
       clearInterval(ping);
       app.realtime.drop(socket);

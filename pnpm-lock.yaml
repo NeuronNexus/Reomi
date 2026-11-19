@@ -191,6 +191,15 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
 
+  tools/seed-demo:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      postgres:
+        specifier: ^4.0.0
+        version: 4.0.0
+
 packages:
 
   '@babel/code-frame@7.29.7':
