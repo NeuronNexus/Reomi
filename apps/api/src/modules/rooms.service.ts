@@ -130,7 +130,9 @@ export const listRooms = async (
   const where = and(
     eq(rooms.status, 'open'),
     gt(rooms.endsAt, sql`now()`),
-    ids?.length ? inArray(rooms.id, ids) : eq(rooms.visibility, 'public'),
+    // Private rooms never appear in listings, including comparisons by id.
+    eq(rooms.visibility, 'public'),
+    ids?.length ? inArray(rooms.id, ids) : undefined,
     query.when === 'live' ? sql`${rooms.startsAt} <= now()` : undefined,
     query.when === 'upcoming' ? sql`${rooms.startsAt} > now()` : undefined,
     query.category ? eq(rooms.category, query.category) : undefined,

@@ -376,6 +376,8 @@ export const updateMember = async (
   if (target.role === 'owner') throw forbidden('forbidden', 'The owner cannot be changed');
   if (patch.role && membership.role !== 'owner')
     throw forbidden('forbidden', 'Only the owner can appoint moderators');
+  if (target.role === 'moderator' && membership.role !== 'owner')
+    throw forbidden('forbidden', 'Only the owner can manage moderators');
   await ctx.db
     .update(communityMembers)
     .set({

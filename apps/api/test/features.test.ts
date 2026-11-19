@@ -204,6 +204,8 @@ describe('fair pricing and private rooms', () => {
   it('hides private rooms and admits only people with the code', async () => {
     const room = await h.createOpenRoom(host, 'growth', { visibility: 'private' });
     expect((await h.call('GET', '/v1/rooms')).json.total).toBe(0);
+    expect((await h.call('GET', `/v1/rooms?ids=${room.id}`)).json.total).toBe(0);
+    expect((await h.call('GET', `/v1/rooms/${room.id}`)).status).toBe(404);
     const member = await h.createMember();
     const denied = await h.call('POST', `/v1/rooms/${room.id}/applications`, member, {
       message: 'I would love to join this room please.',
@@ -324,6 +326,31 @@ describe('communities', () => {
       status: 'active',
     });
     expect((await h.call('GET', `/v1/communities/${json.slug}/posts`, member)).status).toBe(200);
+
+    const mod = await h.createMember('mod');
+    await h.call('POST', `/v1/communities/${json.slug}/join`, mod, { displayName: 'Shelf Keeper' });
+    const pending = (
+      await h.call('GET', `/v1/communities/${json.slug}/members?status=pending`, owner)
+    ).json;
+    await h.call('PATCH', `/v1/communities/${json.slug}/members/${pending[0].id}`, owner, {
+      status: 'active',
+    });
+    const members = (await h.call('GET', `/v1/communities/${json.slug}/members`, owner)).json;
+    const modRow = members.find((m: { displayName: string }) => m.displayName === 'Shelf Keeper');
+    const memberRow = members.find((m: { displayName: string }) => m.displayName === 'Page Turner');
+    await h.call('PATCH', `/v1/communities/${json.slug}/members/${modRow.id}`, owner, {
+      role: 'moderator',
+    });
+    await h.call('PATCH', `/v1/communities/${json.slug}/members/${memberRow.id}`, owner, {
+      role: 'moderator',
+    });
+    const refused = await h.call(
+      'PATCH',
+      `/v1/communities/${json.slug}/members/${memberRow.id}`,
+      mod,
+      { status: 'banned' },
+    );
+    expect(refused.status).toBe(403);
   });
 
   it('uploads media to storage and attaches it once', async () => {
