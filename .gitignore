@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.local/
+.DS_Store
+*.log
+.vercel/
+.wrangler/
+
+# Private planning docs
+*.pdf

@@ -1,0 +1,94 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/figtree';
+
+@theme {
+  --font-display: 'Fraunces Variable', Georgia, serif;
+  --font-sans: 'Figtree Variable', system-ui, sans-serif;
+
+  --color-ink: #120d0b;
+  --color-surface: #1b1411;
+  --color-raised: #261c18;
+  --color-line: #3a2c26;
+  --color-cream: #f6ede3;
+  --color-muted: #b3a294;
+  --color-faint: #8a7a6e;
+  --color-ember: #ff6a33;
+  --color-ember-deep: #d9481a;
+  --color-amber: #ffc56b;
+  --color-success: #7fd1a1;
+  --color-danger: #ff8a80;
+
+  /* CMS only */
+  --color-page: #f7f5f2;
+  --color-panel: #ffffff;
+  --color-accent: #c8441b;
+  --color-accent-soft: #fbe9e2;
+  --color-good: #1c7a4a;
+  --color-good-soft: #e0f3e8;
+  --color-warn: #93610b;
+  --color-warn-soft: #fbf0d6;
+  --color-bad: #b3261e;
+  --color-bad-soft: #fbe6e4;
+}
+
+/* Tailwind colours are CSS variables, so these redefine ink, line and muted inside the CMS. */
+.cms {
+  --color-ink: #1f1a17;
+  --color-line: #e6e1da;
+  --color-muted: #6f6660;
+  background: var(--color-page);
+  color: var(--color-ink);
+  color-scheme: light;
+  font-size: 14px;
+}
+
+.cms :focus-visible {
+  outline-color: var(--color-accent);
+}
+
+html {
+  background: var(--color-ink);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--color-ink);
+  color: var(--color-cream);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-ember);
+  color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.aura-drift {
+  animation: aura-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes aura-drift {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 3%, 0) scale(1.08);
+  }
+}
