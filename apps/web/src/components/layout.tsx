@@ -83,7 +83,7 @@ export const Layout = () => {
             )}
           </nav>
           <div className="ml-auto flex items-center gap-1">
-            <LinkButton to={createRoomRoute} className="hidden px-4! sm:inline-flex">
+            <LinkButton to={createRoomRoute} className="px-4! max-sm:hidden!">
               <Plus className="size-4" aria-hidden />
               Create room
             </LinkButton>

@@ -204,8 +204,12 @@ const CommunityCard = ({ community }: { community: Community }) => (
       <p className="mt-1 line-clamp-2 text-sm text-muted">{community.tagline}</p>
       <p className="mt-3 flex flex-wrap items-center gap-3 text-xs text-faint">
         <span>{TOPIC_LABELS[community.topic]}</span>
-        <span>{community.memberCount} members</span>
-        <span>{community.postCount} posts</span>
+        <span>
+          {community.memberCount} {community.memberCount === 1 ? 'member' : 'members'}
+        </span>
+        <span>
+          {community.postCount} {community.postCount === 1 ? 'post' : 'posts'}
+        </span>
         {community.myStatus === 'active' && <Badge tone="success">Joined</Badge>}
         {community.myStatus === 'pending' && <Badge>Requested</Badge>}
       </p>
@@ -380,7 +384,7 @@ export const CommunityPage = () => {
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
             <span className="inline-flex items-center gap-1.5 text-muted">
               <Users className="size-4" aria-hidden />
-              {data.memberCount} members
+              {data.memberCount} {data.memberCount === 1 ? 'member' : 'members'}
             </span>
             {data.visibility === 'private' ? (
               <Badge>

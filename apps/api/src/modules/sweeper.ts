@@ -105,7 +105,7 @@ export const sweep = async (ctx: Ctx) => {
         eq(rooms.admission, 'instant'),
         eq(rooms.status, 'open'),
         sql`${rooms.startsAt} <= now() and ${rooms.endsAt} > now()`,
-        sql`exists (select 1 from applications a where a.room_id = ${rooms.id} and a.status = 'pending')`,
+        sql`exists (select 1 from applications a where a.room_id = rooms.id and a.status = 'pending')`,
       ),
     );
   for (const room of instant) await autoAdmit(ctx, room.id);

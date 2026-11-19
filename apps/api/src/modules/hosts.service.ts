@@ -315,7 +315,7 @@ export const hostProfileBase = async (
         title: rooms.title,
         endsAt: rooms.endsAt,
         participants: sql<number>`(select count(*)::int from applications a
-          where a.room_id = ${rooms.id} and a.status in ('joined', 'left', 'removed'))`,
+          where a.room_id = rooms.id and a.status in ('joined', 'left', 'removed'))`,
       })
       .from(rooms)
       .where(

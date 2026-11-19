@@ -49,9 +49,9 @@ export const adminModerationRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const members = sql<number>`(select count(*)::int from community_members m
-        where m.community_id = ${communities.id} and m.status = 'active')`;
+        where m.community_id = communities.id and m.status = 'active')`;
       const postCount = sql<number>`(select count(*)::int from posts p
-        where p.community_id = ${communities.id} and p.removed_at is null)`;
+        where p.community_id = communities.id and p.removed_at is null)`;
       const [rows, [total]] = await Promise.all([
         app.db
           .select({ community: communities, owner: profiles.email, members, posts: postCount })

@@ -99,11 +99,12 @@ export const localMediaRoutes: FastifyPluginAsync = async (app: FastifyInstance)
     (_req, body, done) => done(null, body),
   );
 
-  app.put<{ Params: { token: string } }>(
-    '/local/:token',
+  // The token rides in the query string: it is longer than Fastify allows for a path segment.
+  app.put<{ Querystring: { t?: string } }>(
+    '/local',
     { bodyLimit: 60 * 1024 * 1024, config: { rateLimit: false } },
     async (request, reply) => {
-      const grant = storage.verify(request.params.token);
+      const grant = storage.verify(request.query.t ?? '');
       if (!grant || grant.mode !== 'put') return reply.status(403).send({ ok: false });
       if (!Buffer.isBuffer(request.body)) return reply.status(400).send({ ok: false });
       await storage.write(grant.path, request.body, grant.contentType);
@@ -111,11 +112,11 @@ export const localMediaRoutes: FastifyPluginAsync = async (app: FastifyInstance)
     },
   );
 
-  app.get<{ Params: { token: string } }>(
-    '/local/:token',
+  app.get<{ Querystring: { t?: string } }>(
+    '/local',
     { config: { rateLimit: false } },
     async (request, reply) => {
-      const grant = storage.verify(request.params.token);
+      const grant = storage.verify(request.query.t ?? '');
       if (!grant || grant.mode !== 'get') return reply.status(403).send({ ok: false });
       const file = await storage.read(grant.path);
       if (!file) return reply.status(404).send({ ok: false });

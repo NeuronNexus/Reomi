@@ -253,6 +253,7 @@ describe('ratings and reputation', () => {
     expect(JSON.stringify(board)).not.toContain(host.id);
 
     const profile = (await h.call('GET', `/v1/hosts/${board[0].host.id}`)).json;
+    expect(profile.past[0]).toMatchObject({ participants: 1 });
     expect(profile.reviews[0]).toMatchObject({ stars: 5, comment: 'Lovely host' });
   });
 });
@@ -279,10 +280,14 @@ describe('communities', () => {
     expect(post.json.author.displayName).toBe('Thrift Queen');
     expect(post.text).not.toContain(owner.id);
 
+    const detail = await h.call('GET', `/v1/communities/${slug}`, owner);
+    expect(detail.json).toMatchObject({ memberCount: 1, postCount: 1, myRole: 'owner' });
+
     const outsider = await h.createMember('outsider');
     expect((await h.call('GET', `/v1/communities/${slug}/posts`, outsider)).status).toBe(403);
 
     await h.call('POST', `/v1/communities/${slug}/join`, outsider, { displayName: 'Layer Lover' });
+    expect((await h.call('GET', '/v1/communities')).json.items[0].memberCount).toBe(2);
     const feed = await h.call('GET', '/v1/feed', outsider);
     expect(feed.json).toHaveLength(1);
 

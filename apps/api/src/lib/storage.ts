@@ -150,7 +150,7 @@ export class LocalStorage implements MediaStorage {
   async createUpload(path: string, contentType: string): Promise<UploadTarget> {
     const token = this.sign({ path, contentType, mode: 'put', exp: Date.now() + 15 * 60_000 });
     return {
-      url: `${this.publicUrl}/media/local/${token}`,
+      url: `${this.publicUrl}/media/local?t=${token}`,
       method: 'PUT',
       headers: { 'content-type': contentType },
     };
@@ -165,7 +165,7 @@ export class LocalStorage implements MediaStorage {
         mode: 'get',
         exp: Date.now() + DOWNLOAD_TTL_SECONDS * 1000,
       });
-      result.set(path, `${this.publicUrl}/media/local/${token}`);
+      result.set(path, `${this.publicUrl}/media/local?t=${token}`);
     }
     return result;
   }

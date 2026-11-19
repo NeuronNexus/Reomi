@@ -44,9 +44,9 @@ const slugify = (name: string) =>
     .slice(0, 40) || 'community';
 
 const memberCountSql = sql<number>`(select count(*)::int from community_members m
-  where m.community_id = ${communities.id} and m.status = 'active')`;
+  where m.community_id = communities.id and m.status = 'active')`;
 const postCountSql = sql<number>`(select count(*)::int from posts p
-  where p.community_id = ${communities.id} and p.removed_at is null)`;
+  where p.community_id = communities.id and p.removed_at is null)`;
 
 const membershipOf = async (ctx: Ctx, communityId: string, userId: string | undefined) => {
   if (!userId) return null;
@@ -100,7 +100,7 @@ export const listCommunities = async (
 ) => {
   const mine =
     query.mine && viewerId
-      ? sql`exists (select 1 from community_members m where m.community_id = ${communities.id}
+      ? sql`exists (select 1 from community_members m where m.community_id = communities.id
         and m.user_id = ${viewerId} and m.status in ('active', 'pending'))`
       : undefined;
   const where = and(
