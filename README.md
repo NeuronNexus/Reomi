@@ -1,4 +1,4 @@
-# Agnipath
+# Reomi
 
 Anonymous, host-led rooms for meeting people. Members explore open rooms, apply under a per-room
 alias, and pay a one-time ticket if the host accepts them. Verified hosts pay for a plan that sets
@@ -105,7 +105,7 @@ Deploy `apps/web`, which includes the CMS at `/admin`, with the variables from i
 
 | Host             | Root directory  | Build command                       | Output          |
 | ---------------- | --------------- | ----------------------------------- | --------------- |
-| Cloudflare Pages | repository root | `pnpm --filter @agnipath/web build` | `apps/web/dist` |
+| Cloudflare Pages | repository root | `pnpm --filter @reomi/web build` | `apps/web/dist` |
 | Vercel           | `apps/web`      | detected                            | detected        |
 
 Then add the final URL to `CORS_ORIGINS` on the API.

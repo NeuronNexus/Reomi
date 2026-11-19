@@ -12,5 +12,5 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   // The shared package ships TypeScript source, so it has to be compiled into the bundle.
-  noExternal: ['@agnipath/shared'],
+  noExternal: ['@reomi/shared'],
 });

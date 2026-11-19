@@ -14,3 +14,5 @@ coverage/
 
 # Private planning docs
 *.pdf
+
+.vercel

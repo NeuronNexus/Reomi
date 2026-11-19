@@ -1,4 +1,4 @@
-import type { MyApplication } from '@agnipath/shared';
+import type { MyApplication } from '@reomi/shared';
 import { Badge } from './ui';
 
 const STATUS: Record<

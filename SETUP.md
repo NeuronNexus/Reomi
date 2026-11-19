@@ -1,6 +1,6 @@
 # Setup checklist
 
-Everything needed before running Agnipath. Pick the path you need:
+Everything needed before running Reomi. Pick the path you need:
 
 |               | Option A: demo mode         | Option B: real Supabase                           |
 | ------------- | --------------------------- | ------------------------------------------------- |
@@ -17,7 +17,7 @@ Everything needed before running Agnipath. Pick the path you need:
 
 - [ ] **Node.js 22 or newer.** Check with `node -v`.
 - [ ] **pnpm.** Check with `pnpm -v`. If it is missing, run `corepack enable`.
-- [ ] **Install the project.** From `D:\agnipath`, run `pnpm install`.
+- [ ] **Install the project.** From `D:\reomi`, run `pnpm install`.
 - [ ] **Free memory.** Keep at least 2 GB free. Close extra Chrome tabs and VS Code windows.
 
 ## Option A: demo mode
@@ -122,7 +122,7 @@ Open http://localhost:5173. The site starts with no rooms and no demo accounts.
 ### 7. Create your admin account
 
 - [ ] Sign up on the website with your own email and finish the profile step.
-- [ ] Open a second terminal in `D:\agnipath` and run:
+- [ ] Open a second terminal in `D:\reomi` and run:
   ```powershell
   pnpm admin:grant you@example.com
   ```

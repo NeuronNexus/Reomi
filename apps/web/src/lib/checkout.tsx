@@ -1,7 +1,7 @@
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { APP_NAME, formatPaise } from '@agnipath/shared';
-import type { Checkout, PaymentResult } from '@agnipath/shared';
+import { APP_NAME, formatPaise } from '@reomi/shared';
+import type { Checkout, PaymentResult } from '@reomi/shared';
 import { Button } from '../components/ui';
 import { useAuth } from './auth';
 import { api } from './client';
@@ -133,16 +133,16 @@ export const CheckoutProvider = ({ children }: { children: ReactNode }) => {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Test payment"
+            aria-label="Demo payment"
             className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6"
           >
             <p className="text-xs font-semibold tracking-widest text-amber uppercase">
-              Test payment
+              Demo payment
             </p>
             <h2 className="mt-2 font-display text-3xl">{formatPaise(mockOrder.amountPaise)}</h2>
             <p className="mt-1 text-sm text-muted">{mockOrder.description}</p>
             <p className="mt-4 rounded-lg bg-raised p-3 text-sm text-muted">
-              This is the local payment simulator. No money moves. Production uses Razorpay.
+              Reomi is in demo mode. No money moves and no card is needed. Real checkout uses Razorpay.
             </p>
             <div className="mt-5 flex gap-3">
               <Button variant="ghost" className="flex-1" onClick={() => closeMock(false)}>

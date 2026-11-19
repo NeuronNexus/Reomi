@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { formatPaise } from '@agnipath/shared';
-import type { MyApplication } from '@agnipath/shared';
+import { formatPaise } from '@reomi/shared';
+import type { MyApplication } from '@reomi/shared';
 import { AuraAvatar } from '../components/aura';
 import { ApplicationBadge } from '../components/status';
 import { Button, EmptyState, ErrorNotice, LinkButton, PageTitle, Spinner } from '../components/ui';

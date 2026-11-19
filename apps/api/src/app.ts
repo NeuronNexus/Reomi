@@ -11,7 +11,7 @@ import {
   validatorCompiler,
 } from 'fastify-type-provider-zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { APP_NAME } from '@agnipath/shared';
+import { APP_NAME } from '@reomi/shared';
 import type { Config } from './config';
 import type { Db } from './db/client';
 import type { PaymentProvider } from './lib/payment-provider';

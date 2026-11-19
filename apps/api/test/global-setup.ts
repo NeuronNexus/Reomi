@@ -24,7 +24,7 @@ const SUPABASE_STUB = `
 `;
 
 export default async function setup(project: TestProject) {
-  const dir = await mkdtemp(join(tmpdir(), 'agnipath-test-pg-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reomi-test-pg-'));
   const port = 54_000 + Math.floor(Math.random() * 900);
   const server = new EmbeddedPostgres({
     databaseDir: dir,
@@ -37,9 +37,9 @@ export default async function setup(project: TestProject) {
   });
   await server.initialise();
   await server.start();
-  await server.createDatabase('agnipath_test');
+  await server.createDatabase('reomi_test');
 
-  const url = `postgres://postgres:postgres@127.0.0.1:${port}/agnipath_test`;
+  const url = `postgres://postgres:postgres@127.0.0.1:${port}/reomi_test`;
   const client = postgres(url, { max: 1, onnotice: () => {} });
   await client.unsafe(SUPABASE_STUB);
   await migrate(drizzle(client), { migrationsFolder: resolve(process.cwd(), 'drizzle') });

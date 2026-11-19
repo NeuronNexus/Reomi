@@ -14,7 +14,7 @@ import type {
   adminRoomQuery,
   AdminStats,
   adminUserQuery,
-} from '@agnipath/shared';
+} from '@reomi/shared';
 import type { Db, Tx } from '../db/client';
 import {
   adminAuditLog,

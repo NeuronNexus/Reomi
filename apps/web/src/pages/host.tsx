@@ -13,7 +13,7 @@ import {
   formatPaise,
   hostApplicationInput,
   ROOM_CATEGORIES,
-} from '@agnipath/shared';
+} from '@reomi/shared';
 import type {
   Applicant,
   Checkout,
@@ -22,7 +22,7 @@ import type {
   HostRoomDashboard,
   Paginated,
   Plan,
-} from '@agnipath/shared';
+} from '@reomi/shared';
 import { AuraAvatar } from '../components/aura';
 import { ApplicationBadge } from '../components/status';
 import {

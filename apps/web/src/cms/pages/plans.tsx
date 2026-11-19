@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { adminFeatureInput, adminPlanInput, formatPaise } from '@agnipath/shared';
-import type { AdminFeatureInput, AdminPlan, Feature } from '@agnipath/shared';
+import { adminFeatureInput, adminPlanInput, formatPaise } from '@reomi/shared';
+import type { AdminFeatureInput, AdminPlan, Feature } from '@reomi/shared';
 import { Button, Field, Input, Modal, PageHeader, Panel, Pill, TableState } from '../ui';
 import { api } from '../../lib/client';
 

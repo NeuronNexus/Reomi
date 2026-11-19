@@ -5,8 +5,8 @@ import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useParams } from 'react-router';
 import { toast } from 'sonner';
-import { ApiRequestError, applyInput, formatPaise } from '@agnipath/shared';
-import type { Lobby, MyApplication, RoomDetail } from '@agnipath/shared';
+import { ApiRequestError, applyInput, formatPaise } from '@reomi/shared';
+import type { Lobby, MyApplication, RoomDetail } from '@reomi/shared';
 import { AuraAvatar, AuraPanel } from '../components/aura';
 import { ApplicationBadge } from '../components/status';
 import {

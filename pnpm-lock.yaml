@@ -78,7 +78,7 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
-      '@agnipath/shared':
+      '@reomi/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@types/node':
@@ -102,7 +102,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@agnipath/shared':
+      '@reomi/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@fontsource-variable/figtree':

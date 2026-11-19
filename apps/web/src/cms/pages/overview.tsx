@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { formatPaise } from '@agnipath/shared';
-import type { AdminStats } from '@agnipath/shared';
+import { formatPaise } from '@reomi/shared';
+import type { AdminStats } from '@reomi/shared';
 import { PageHeader, Panel, TableState } from '../ui';
 import { api } from '../../lib/client';
 

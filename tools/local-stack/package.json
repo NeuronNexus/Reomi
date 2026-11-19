@@ -1,5 +1,5 @@
 {
-  "name": "@agnipath/local-stack",
+  "name": "@reomi/local-stack",
   "version": "0.1.0",
   "private": true,
   "type": "module",

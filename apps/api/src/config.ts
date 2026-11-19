@@ -25,6 +25,11 @@ const envSchema = z
       ),
 
     PAYMENT_PROVIDER: z.enum(['razorpay', 'mock']).default('razorpay'),
+    /** Lets the simulated checkout run in production while Razorpay is not set up yet. */
+    ALLOW_DEMO_PAYMENTS: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
     RAZORPAY_KEY_ID: z.string().optional(),
     RAZORPAY_KEY_SECRET: z.string().optional(),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
@@ -35,11 +40,11 @@ const envSchema = z
     PAYMENT_WINDOW_HOURS: z.coerce.number().int().min(1).max(168).default(48),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === 'production' && env.PAYMENT_PROVIDER === 'mock') {
+    if (env.NODE_ENV === 'production' && env.PAYMENT_PROVIDER === 'mock' && !env.ALLOW_DEMO_PAYMENTS) {
       ctx.addIssue({
         code: 'custom',
         path: ['PAYMENT_PROVIDER'],
-        message: 'The mock payment provider is not allowed in production',
+        message: 'The mock payment provider needs ALLOW_DEMO_PAYMENTS=true in production',
       });
     }
     if (env.PAYMENT_PROVIDER === 'razorpay') {

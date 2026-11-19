@@ -1,4 +1,4 @@
-import type { GENDERS, INTERESTS, ROOM_CATEGORIES } from '@agnipath/shared';
+import type { GENDERS, INTERESTS, ROOM_CATEGORIES } from '@reomi/shared';
 
 export type Gender = (typeof GENDERS)[number];
 export type Interest = (typeof INTERESTS)[number];

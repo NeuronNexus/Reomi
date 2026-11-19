@@ -1,5 +1,5 @@
 {
-  "name": "agnipath",
+  "name": "reomi",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -11,15 +11,15 @@
     "dev:local": "tsx tools/local-stack/index.ts",
     "dev": "pnpm -r --parallel --filter ./apps/* dev",
     "build": "pnpm -r --filter ./apps/* build",
-    "test": "pnpm --filter @agnipath/api test",
+    "test": "pnpm --filter @reomi/api test",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:generate": "pnpm --filter @agnipath/api db:generate",
-    "db:migrate": "pnpm --filter @agnipath/api db:migrate",
-    "db:seed": "pnpm --filter @agnipath/api db:seed",
-    "admin:grant": "pnpm --filter @agnipath/api admin:grant"
+    "db:generate": "pnpm --filter @reomi/api db:generate",
+    "db:migrate": "pnpm --filter @reomi/api db:migrate",
+    "db:seed": "pnpm --filter @reomi/api db:seed",
+    "admin:grant": "pnpm --filter @reomi/api admin:grant"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

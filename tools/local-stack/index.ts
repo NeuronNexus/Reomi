@@ -18,7 +18,7 @@ const PORTS = { postgres: 54_329, auth: 54_321, api: 8080, web: 5173 };
 const JWT_SECRET = 'local-development-secret-not-for-production-use';
 const root = resolve(import.meta.dirname, '../..');
 const dataDir = resolve(root, '.local/postgres');
-const databaseUrl = `postgres://postgres:postgres@127.0.0.1:${PORTS.postgres}/agnipath`;
+const databaseUrl = `postgres://postgres:postgres@127.0.0.1:${PORTS.postgres}/reomi`;
 const authUrl = `http://127.0.0.1:${PORTS.auth}`;
 
 const SUPABASE_STUB = `
@@ -111,19 +111,27 @@ try {
     await pg.initialise();
   }
   await pg.start();
-  if (firstRun) await pg.createDatabase('agnipath');
+  if (firstRun) {
+    await pg.createDatabase('reomi');
+  } else {
+    // Data folders created before the rename hold an older database name.
+    const admin = postgres(databaseUrl.replace(/\/reomi$/, '/postgres'), { max: 1, onnotice: () => {} });
+    const found = await admin`select 1 from pg_database where datname = 'reomi'`;
+    if (found.length === 0) await admin.unsafe('create database reomi');
+    await admin.end();
+  }
 
   const sql = postgres(databaseUrl, { max: 2, onnotice: () => {} });
   await sql.unsafe(SUPABASE_STUB);
 
   const dbEnv = { DATABASE_URL: databaseUrl };
-  await runToCompletion('migrate', ['--filter', '@agnipath/api', 'db:migrate'], dbEnv);
-  await runToCompletion('seed', ['--filter', '@agnipath/api', 'db:seed'], dbEnv);
+  await runToCompletion('migrate', ['--filter', '@reomi/api', 'db:migrate'], dbEnv);
+  await runToCompletion('seed', ['--filter', '@reomi/api', 'db:seed'], dbEnv);
   await loadDemoData(sql);
 
   startAuthStub({ sql, port: PORTS.auth, jwtSecret: JWT_SECRET });
 
-  run('api', ['--filter', '@agnipath/api', 'dev'], {
+  run('api', ['--filter', '@reomi/api', 'dev'], {
     ...dbEnv,
     NODE_ENV: 'development',
     PORT: String(PORTS.api),
@@ -140,10 +148,10 @@ try {
     VITE_SUPABASE_URL: authUrl,
     VITE_SUPABASE_KEY: 'local-stub-key',
   };
-  run('web', ['--filter', '@agnipath/web', 'dev', '--port', String(PORTS.web)], frontendEnv);
+  run('web', ['--filter', '@reomi/web', 'dev', '--port', String(PORTS.web)], frontendEnv);
 
   console.log(`
-  Agnipath is starting.
+  Reomi is starting.
 
   App   http://localhost:${PORTS.web}
   CMS   http://localhost:${PORTS.web}/admin

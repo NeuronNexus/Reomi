@@ -24,7 +24,7 @@ import {
   roomDetailDto,
   roomListQuery,
   uuidParam,
-} from '@agnipath/shared';
+} from '@reomi/shared';
 import { features, planFeatures, plans } from '../db/schema';
 import { currentUser, isOnboarded } from '../plugins/auth';
 import type { AuthContext } from '../plugins/auth';

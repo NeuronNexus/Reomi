@@ -1,4 +1,4 @@
-export const APP_NAME = 'Agnipath';
+export const APP_NAME = 'Reomi';
 export const MINIMUM_AGE = 18;
 export const CURRENCY = 'INR';
 

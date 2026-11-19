@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { LogOut, Plus } from 'lucide-react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
-import { APP_NAME } from '@agnipath/shared';
+import { APP_NAME } from '@reomi/shared';
 import { useAuth } from '../lib/auth';
 import { useCreateRoomRoute } from '../lib/guards';
 import { Button, LinkButton } from './ui';

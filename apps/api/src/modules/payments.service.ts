@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import { CURRENCY } from '@agnipath/shared';
-import type { Checkout, PaymentResult } from '@agnipath/shared';
+import { CURRENCY } from '@reomi/shared';
+import type { Checkout, PaymentResult } from '@reomi/shared';
 import type { Db, Tx } from '../db/client';
 import { applications, payments, rooms } from '../db/schema';
 import { AppError, conflict, notFound } from '../lib/errors';

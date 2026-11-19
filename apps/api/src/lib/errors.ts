@@ -1,4 +1,4 @@
-import type { ERROR_CODES } from '@agnipath/shared';
+import type { ERROR_CODES } from '@reomi/shared';
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

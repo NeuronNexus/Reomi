@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDeferredValue, useState } from 'react';
 import { toast } from 'sonner';
-import type { AdminUser, Me, Paginated } from '@agnipath/shared';
+import type { AdminUser, Me, Paginated } from '@reomi/shared';
 import {
   Button,
   Cell,

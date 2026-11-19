@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, inArray, sql, sum } from 'drizzle-orm';
 import type { z } from 'zod';
-import { FEATURE } from '@agnipath/shared';
+import { FEATURE } from '@reomi/shared';
 import type {
   Applicant,
   CreateRoomInput,
@@ -8,7 +8,7 @@ import type {
   HostRoom,
   HostRoomDashboard,
   paginationQuery,
-} from '@agnipath/shared';
+} from '@reomi/shared';
 import type { Db } from '../db/client';
 import {
   applications,

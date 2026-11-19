@@ -25,7 +25,7 @@ import {
   ROOM_STATUSES,
   USER_ROLES,
   USER_STATUSES,
-} from '@agnipath/shared';
+} from '@reomi/shared';
 
 export const genderEnum = pgEnum('gender', GENDERS);
 export const userRoleEnum = pgEnum('user_role', USER_ROLES);

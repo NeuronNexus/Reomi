@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { Checkout } from '@agnipath/shared';
+import type { Checkout } from '@reomi/shared';
 import { CheckoutCancelled, useCheckout } from './checkout';
 import { api } from './client';
 

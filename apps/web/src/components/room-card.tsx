@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
-import { formatPaise } from '@agnipath/shared';
-import type { RoomCard as Room } from '@agnipath/shared';
+import { formatPaise } from '@reomi/shared';
+import type { RoomCard as Room } from '@reomi/shared';
 import { timeLeft } from '../lib/format';
 import { CATEGORY_LABELS } from '../lib/labels';
 import { AuraPanel } from './aura';

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { createApiClient } from '@agnipath/shared';
+import { createApiClient } from '@reomi/shared';
 
 const required = (name: string, value: string | undefined): string => {
   if (!value) throw new Error(`${name} is not set. See apps/web/.env.example.`);

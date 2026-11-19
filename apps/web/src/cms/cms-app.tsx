@@ -12,8 +12,8 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from 'react-router';
-import { APP_NAME } from '@agnipath/shared';
-import type { AdminStats, Me } from '@agnipath/shared';
+import { APP_NAME } from '@reomi/shared';
+import type { AdminStats, Me } from '@reomi/shared';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/client';
 import { HostsPage } from './pages/hosts';

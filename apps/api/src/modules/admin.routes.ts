@@ -22,7 +22,7 @@ import {
   featureDto,
   paginated,
   uuidParam,
-} from '@agnipath/shared';
+} from '@reomi/shared';
 import { currentUser } from '../plugins/auth';
 import * as admin from './admin.service';
 

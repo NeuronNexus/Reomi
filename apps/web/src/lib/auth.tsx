@@ -2,8 +2,8 @@ import type { Session } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ApiRequestError } from '@agnipath/shared';
-import type { Me } from '@agnipath/shared';
+import { ApiRequestError } from '@reomi/shared';
+import type { Me } from '@reomi/shared';
 import { api, supabase } from './client';
 
 interface AuthState {

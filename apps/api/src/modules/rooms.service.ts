@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gt, ilike, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
-import { FEATURE } from '@agnipath/shared';
-import type { MyApplication, RoomCard, RoomDetail, roomListQuery } from '@agnipath/shared';
+import { FEATURE } from '@reomi/shared';
+import type { MyApplication, RoomCard, RoomDetail, roomListQuery } from '@reomi/shared';
 import type { Db } from '../db/client';
 import { applications, hostVerifications, profiles, rooms } from '../db/schema';
 import { generateAlias } from '../lib/alias';

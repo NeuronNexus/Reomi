@@ -1,8 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDeferredValue, useState } from 'react';
 import { toast } from 'sonner';
-import { formatPaise } from '@agnipath/shared';
-import type { AdminPlan, AdminRoom, Paginated } from '@agnipath/shared';
+import { formatPaise } from '@reomi/shared';
+import type { AdminPlan, AdminRoom, Paginated } from '@reomi/shared';
 import {
   Button,
   Cell,

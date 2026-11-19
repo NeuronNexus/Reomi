@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { Toaster } from 'sonner';
-import { ApiRequestError } from '@agnipath/shared';
+import { ApiRequestError } from '@reomi/shared';
 import { App } from './App';
 import { AuthProvider } from './lib/auth';
 import { CheckoutProvider } from './lib/checkout';
