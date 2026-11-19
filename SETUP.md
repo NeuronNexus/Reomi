@@ -10,8 +10,8 @@ Everything needed before running Reomi. Pick the path you need:
 | Payments      | Fake payment screen         | Fake screen, or Razorpay test mode                |
 | Start command | `pnpm dev:local`            | `pnpm dev`                                        |
 
-> **Status:** Option A is fully tested. Option B has not been run against a real Supabase project
-> or real Razorpay keys yet, so expect to find small issues the first time.
+> **Status:** Option A is fully tested, including an end-to-end browser run. Production runs on Render, Vercel
+> and Supabase (see README). Razorpay has not been tried with real keys yet.
 
 ## Needed for both options
 
@@ -176,4 +176,6 @@ Deployment steps are in [README.md](README.md#deploy). These need settling first
 - [ ] **Email:** set up custom SMTP and turn **Confirm email** back on.
 - [ ] **URLs:** replace the `localhost` values with your real domain in Supabase and `CORS_ORIGINS`.
 - [ ] **Live keys:** use Razorpay live keys, with a new webhook and its own secret.
-- [ ] **Room chat and moderation:** build these before charging real users.
+- [ ] **Demo data:** run `pnpm demo:reset` against production if you seeded demo accounts.
+- [ ] **Database:** the production database is Render's free Postgres, which expires 30 days after
+      creation. Upgrade it or move to the Supabase database before then (see README).

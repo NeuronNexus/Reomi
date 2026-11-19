@@ -3,7 +3,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { createDatabase } from '../client';
 import { seedCatalogue } from '../seed';
 
-/** Railway's pre-deploy step. A failure here stops the deployment before any traffic moves. */
+/** Runs before the server starts (see the Dockerfile). A failure stops the container before it takes traffic. */
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is required');
 

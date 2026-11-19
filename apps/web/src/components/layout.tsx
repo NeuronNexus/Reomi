@@ -35,7 +35,7 @@ const MOBILE_TABS = [
 
 export const Layout = () => {
   const { session, me, signOut } = useAuth();
-  const { connected } = useRealtime();
+  const { mode } = useRealtime();
   const navigate = useNavigate();
   const createRoomRoute = useCreateRoomRoute();
 
@@ -94,7 +94,13 @@ export const Layout = () => {
                   to="/profile"
                   aria-label="Your profile"
                   className="relative hidden size-11 place-items-center sm:grid"
-                  title={connected ? 'Live updates on' : 'Reconnecting'}
+                  title={
+                    mode === 'live'
+                      ? 'Live updates on'
+                      : mode === 'polling'
+                        ? 'Updating every few seconds'
+                        : 'Connecting'
+                  }
                 >
                   {me?.avatarUrl ? (
                     <img src={me.avatarUrl} alt="" className="size-8 rounded-full object-cover" />
@@ -106,7 +112,7 @@ export const Layout = () => {
                   <span
                     className={clsx(
                       'absolute right-1.5 bottom-1.5 size-2.5 rounded-full border-2 border-ink',
-                      connected ? 'bg-success' : 'bg-faint',
+                      mode === 'live' ? 'bg-success' : mode === 'polling' ? 'bg-amber' : 'bg-faint',
                     )}
                     aria-hidden
                   />

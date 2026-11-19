@@ -8,7 +8,7 @@ import type { Notifications } from '@reomi/shared';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/client';
 import { timeAgo } from '../lib/format';
-import { useChannel } from '../lib/realtime';
+import { useChannel, useRealtime } from '../lib/realtime';
 
 export const NotificationBell = () => {
   const { session } = useAuth();
@@ -17,6 +17,8 @@ export const NotificationBell = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
+  const { mode } = useRealtime();
+  const seen = useRef<string | null | undefined>(undefined);
 
   const list = useQuery({
     queryKey: ['notifications', userId],
@@ -49,6 +51,29 @@ export const NotificationBell = () => {
     }
     if (event.kind === 'threads') void queryClient.invalidateQueries({ queryKey: ['threads'] });
   });
+
+  // Without a live socket, toast notifications that arrive with a refetch instead.
+  const newest = list.data?.items[0];
+  useEffect(() => {
+    if (!list.data) return;
+    const top = newest?.id ?? null;
+    if (
+      seen.current !== undefined &&
+      top &&
+      top !== seen.current &&
+      mode !== 'live' &&
+      newest &&
+      !newest.read
+    ) {
+      toast(newest.title, {
+        description: newest.body || undefined,
+        action: newest.link
+          ? { label: 'Open', onClick: () => void navigate(newest.link!) }
+          : undefined,
+      });
+    }
+    seen.current = top;
+  }, [list.data, newest, mode, navigate]);
 
   useEffect(() => {
     if (!open) return;

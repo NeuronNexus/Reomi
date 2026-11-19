@@ -39,24 +39,125 @@ interface Person {
 }
 
 const people: Person[] = [
-  { key: 'admin', email: `reomi.admin@${DOMAIN}`, fullName: 'Asha Admin', gender: 'woman', wants: ['men'], bio: 'Keeps Reomi kind.', city: 'Bengaluru' },
-  { key: 'rohan', email: `rohan.host@${DOMAIN}`, fullName: 'Rohan Mehta', gender: 'man', wants: ['women'], bio: 'Dinner clubs for six years.', city: 'Bengaluru' },
-  { key: 'meera', email: `meera.host@${DOMAIN}`, fullName: 'Meera Iyer', gender: 'woman', wants: ['men', 'women'], bio: 'Former radio host.', city: 'Chennai' },
-  { key: 'kabir', email: `kabir.host@${DOMAIN}`, fullName: 'Kabir Shah', gender: 'man', wants: ['women'], bio: 'Runs a pub quiz.', city: 'Mumbai' },
-  { key: 'ananya', email: `ananya@${DOMAIN}`, fullName: 'Ananya Rao', gender: 'woman', wants: ['men'], bio: 'Product designer, slow reader, terrible at karaoke.', city: 'Bengaluru' },
-  { key: 'ishaan', email: `ishaan@${DOMAIN}`, fullName: 'Ishaan Kapoor', gender: 'man', wants: ['women'], bio: 'Weekend baker. Will talk about sourdough for hours.', city: 'Bengaluru' },
-  { key: 'zoya', email: `zoya@${DOMAIN}`, fullName: 'Zoya Khan', gender: 'woman', wants: ['men'], bio: 'Thrift queen and street-style photographer.', city: 'Pune' },
-  { key: 'arjun', email: `arjun@${DOMAIN}`, fullName: 'Arjun Nair', gender: 'man', wants: ['women'], bio: 'Marathoner, chai snob.', city: 'Kochi' },
-  { key: 'sana', email: `sana@${DOMAIN}`, fullName: 'Sana Mirza', gender: 'woman', wants: ['women', 'men'], bio: 'Poet by night, analyst by day.', city: 'Hyderabad' },
-  { key: 'dev', email: `dev@${DOMAIN}`, fullName: 'Dev Malhotra', gender: 'man', wants: ['men'], bio: 'Plays bass in two bands.', city: 'Delhi' },
-  { key: 'priya', email: `priya@${DOMAIN}`, fullName: 'Priya Menon', gender: 'woman', wants: ['men'], bio: 'Climber and crossword addict.', city: 'Bengaluru' },
-  { key: 'kunal', email: `kunal@${DOMAIN}`, fullName: 'Kunal Verma', gender: 'man', wants: ['women'], bio: 'Builds tiny robots.', city: 'Bengaluru' },
+  {
+    key: 'admin',
+    email: `reomi.admin@${DOMAIN}`,
+    fullName: 'Asha Admin',
+    gender: 'woman',
+    wants: ['men'],
+    bio: 'Keeps Reomi kind.',
+    city: 'Bengaluru',
+  },
+  {
+    key: 'rohan',
+    email: `rohan.host@${DOMAIN}`,
+    fullName: 'Rohan Mehta',
+    gender: 'man',
+    wants: ['women'],
+    bio: 'Dinner clubs for six years.',
+    city: 'Bengaluru',
+  },
+  {
+    key: 'meera',
+    email: `meera.host@${DOMAIN}`,
+    fullName: 'Meera Iyer',
+    gender: 'woman',
+    wants: ['men', 'women'],
+    bio: 'Former radio host.',
+    city: 'Chennai',
+  },
+  {
+    key: 'kabir',
+    email: `kabir.host@${DOMAIN}`,
+    fullName: 'Kabir Shah',
+    gender: 'man',
+    wants: ['women'],
+    bio: 'Runs a pub quiz.',
+    city: 'Mumbai',
+  },
+  {
+    key: 'ananya',
+    email: `ananya@${DOMAIN}`,
+    fullName: 'Ananya Rao',
+    gender: 'woman',
+    wants: ['men'],
+    bio: 'Product designer, slow reader, terrible at karaoke.',
+    city: 'Bengaluru',
+  },
+  {
+    key: 'ishaan',
+    email: `ishaan@${DOMAIN}`,
+    fullName: 'Ishaan Kapoor',
+    gender: 'man',
+    wants: ['women'],
+    bio: 'Weekend baker. Will talk about sourdough for hours.',
+    city: 'Bengaluru',
+  },
+  {
+    key: 'zoya',
+    email: `zoya@${DOMAIN}`,
+    fullName: 'Zoya Khan',
+    gender: 'woman',
+    wants: ['men'],
+    bio: 'Thrift queen and street-style photographer.',
+    city: 'Pune',
+  },
+  {
+    key: 'arjun',
+    email: `arjun@${DOMAIN}`,
+    fullName: 'Arjun Nair',
+    gender: 'man',
+    wants: ['women'],
+    bio: 'Marathoner, chai snob.',
+    city: 'Kochi',
+  },
+  {
+    key: 'sana',
+    email: `sana@${DOMAIN}`,
+    fullName: 'Sana Mirza',
+    gender: 'woman',
+    wants: ['women', 'men'],
+    bio: 'Poet by night, analyst by day.',
+    city: 'Hyderabad',
+  },
+  {
+    key: 'dev',
+    email: `dev@${DOMAIN}`,
+    fullName: 'Dev Malhotra',
+    gender: 'man',
+    wants: ['men'],
+    bio: 'Plays bass in two bands.',
+    city: 'Delhi',
+  },
+  {
+    key: 'priya',
+    email: `priya@${DOMAIN}`,
+    fullName: 'Priya Menon',
+    gender: 'woman',
+    wants: ['men'],
+    bio: 'Climber and crossword addict.',
+    city: 'Bengaluru',
+  },
+  {
+    key: 'kunal',
+    email: `kunal@${DOMAIN}`,
+    fullName: 'Kunal Verma',
+    gender: 'man',
+    wants: ['women'],
+    bio: 'Builds tiny robots.',
+    city: 'Bengaluru',
+  },
 ];
 const by = (key: string) => people.find((p) => p.key === key)!;
 
 /* Plumbing ---------------------------------------------------------------------------------- */
 
-const call = async <T = unknown>(method: string, path: string, who?: Person, body?: unknown): Promise<T> => {
+const call = async <T = unknown>(
+  method: string,
+  path: string,
+  who?: Person,
+  body?: unknown,
+): Promise<T> => {
   const response = await fetch(`${API}${path}`, {
     method,
     headers: {
@@ -66,7 +167,8 @@ const call = async <T = unknown>(method: string, path: string, who?: Person, bod
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   const text = await response.text();
-  if (!response.ok) throw new Error(`${method} ${path} -> ${response.status}: ${text.slice(0, 300)}`);
+  if (!response.ok)
+    throw new Error(`${method} ${path} -> ${response.status}: ${text.slice(0, 300)}`);
   return (text ? JSON.parse(text) : undefined) as T;
 };
 
@@ -82,7 +184,11 @@ const tryCall = async (method: string, path: string, who?: Person, body?: unknow
 const ensureLogin = async (person: Person) => {
   const created = await fetch(`${SUPABASE}/auth/v1/admin/users`, {
     method: 'POST',
-    headers: { apikey: SECRET, authorization: `Bearer ${SECRET}`, 'content-type': 'application/json' },
+    headers: {
+      apikey: SECRET,
+      authorization: `Bearer ${SECRET}`,
+      'content-type': 'application/json',
+    },
     body: JSON.stringify({ email: person.email, password: PASSWORD, email_confirm: true }),
   });
   if (!created.ok && created.status !== 422) {
@@ -93,7 +199,8 @@ const ensureLogin = async (person: Person) => {
     headers: { apikey: PUBLISHABLE, 'content-type': 'application/json' },
     body: JSON.stringify({ email: person.email, password: PASSWORD }),
   });
-  if (!session.ok) throw new Error(`sign in ${person.email}: ${session.status} ${await session.text()}`);
+  if (!session.ok)
+    throw new Error(`sign in ${person.email}: ${session.status} ${await session.text()}`);
   const json = (await session.json()) as { access_token: string; user: { id: string } };
   person.token = json.access_token;
   person.id = json.user.id;
@@ -152,13 +259,15 @@ const png = (w: number, h: number, seed: number): Buffer => {
 };
 
 const upload = async (who: Person, purpose: 'avatar' | 'post' | 'story', image: Buffer) => {
-  const slot = await call<{ mediaId: string; upload: { url: string; headers: Record<string, string> } }>(
-    'POST',
-    '/v1/media/uploads',
-    who,
-    { purpose, contentType: 'image/png', size: image.length },
-  );
-  const put = await fetch(slot.upload.url, { method: 'PUT', headers: slot.upload.headers, body: image });
+  const slot = await call<{
+    mediaId: string;
+    upload: { url: string; headers: Record<string, string> };
+  }>('POST', '/v1/media/uploads', who, { purpose, contentType: 'image/png', size: image.length });
+  const put = await fetch(slot.upload.url, {
+    method: 'PUT',
+    headers: slot.upload.headers,
+    body: image,
+  });
   if (!put.ok) throw new Error(`upload failed: ${put.status} ${await put.text()}`);
   return slot.mediaId;
 };
@@ -182,7 +291,13 @@ const openRoom = async (host: Person, input: Record<string, unknown>) => {
   return created.roomId;
 };
 
-const join = async (host: Person, member: Person, roomId: string, message: string, code?: string) => {
+const join = async (
+  host: Person,
+  member: Person,
+  roomId: string,
+  message: string,
+  code?: string,
+) => {
   const application = await call<{ id: string; alias: string; status: string }>(
     'POST',
     `/v1/rooms/${roomId}/applications`,
@@ -190,9 +305,15 @@ const join = async (host: Person, member: Person, roomId: string, message: strin
     { message, ...(code ? { inviteCode: code } : {}) },
   );
   if (application.status === 'pending') {
-    await call('POST', `/v1/host/rooms/${roomId}/applications/${application.id}/decision`, host, { decision: 'accept' });
+    await call('POST', `/v1/host/rooms/${roomId}/applications/${application.id}/decision`, host, {
+      decision: 'accept',
+    });
   }
-  const order = await call<{ paymentId: string; orderId: string }>('POST', `/v1/applications/${application.id}/checkout`, member);
+  const order = await call<{ paymentId: string; orderId: string }>(
+    'POST',
+    `/v1/applications/${application.id}/checkout`,
+    member,
+  );
   await call('POST', `/v1/payments/${order.paymentId}/confirm`, member, {
     providerPaymentId: `mock_pay_${order.orderId}`,
     signature: 'mock_signature',
@@ -200,7 +321,8 @@ const join = async (host: Person, member: Person, roomId: string, message: strin
   return application.alias;
 };
 
-const say = (who: Person, roomId: string, body: string) => tryCall('POST', `/v1/rooms/${roomId}/messages`, who, { body });
+const say = (who: Person, roomId: string, body: string) =>
+  tryCall('POST', `/v1/rooms/${roomId}/messages`, who, { body });
 
 /* Reset ------------------------------------------------------------------------------------- */
 
@@ -239,17 +361,22 @@ const seed = async () => {
   }
 
   const sql = postgres(DATABASE_URL, { max: 1, prepare: false, onnotice: () => {} });
-  const [{ count } = { count: 0 }] = await sql<{ count: number }[]>`select count(*)::int as count from rooms`;
+  const [{ count } = { count: 0 }] = await sql<
+    { count: number }[]
+  >`select count(*)::int as count from rooms`;
   await sql`update profiles set role = 'admin' where id = ${by('admin').id!}`;
   await sql.end();
   if (count > 0) {
-    console.log('Rooms already exist, so content was not added again. Run demo:reset first to start over.');
+    console.log(
+      'Rooms already exist, so content was not added again. Run demo:reset first to start over.',
+    );
     return;
   }
 
   console.log('Profiles and photos');
   for (const [index, person] of people.entries()) {
-    const avatarMediaId = index > 3 ? await upload(person, 'avatar', png(320, 320, index)) : undefined;
+    const avatarMediaId =
+      index > 3 ? await upload(person, 'avatar', png(320, 320, index)) : undefined;
     await call('PUT', '/v1/me/details', person, {
       fullName: person.fullName,
       bio: person.bio,
@@ -261,12 +388,30 @@ const seed = async () => {
 
   console.log('Hosts');
   const hosts = [
-    { who: by('rohan'), name: 'Slow Burn Socials', about: 'I have been running small dinner clubs in Bengaluru for six years. My rooms are slow, warm and full of good questions.' },
-    { who: by('meera'), name: 'The Long Table', about: 'A former radio host who loves getting strangers talking honestly. Letters, poems and late-night confessions.' },
-    { who: by('kabir'), name: 'Midnight Quiz Club', about: 'I run a popular pub quiz and brought it online for singles. Expect chaos, trivia and a lot of laughing.' },
+    {
+      who: by('rohan'),
+      name: 'Slow Burn Socials',
+      about:
+        'I have been running small dinner clubs in Bengaluru for six years. My rooms are slow, warm and full of good questions.',
+    },
+    {
+      who: by('meera'),
+      name: 'The Long Table',
+      about:
+        'A former radio host who loves getting strangers talking honestly. Letters, poems and late-night confessions.',
+    },
+    {
+      who: by('kabir'),
+      name: 'Midnight Quiz Club',
+      about:
+        'I run a popular pub quiz and brought it online for singles. Expect chaos, trivia and a lot of laughing.',
+    },
   ];
   for (const host of hosts) {
-    await call('POST', '/v1/host/application', host.who, { displayName: host.name, about: host.about });
+    await call('POST', '/v1/host/application', host.who, {
+      displayName: host.name,
+      about: host.about,
+    });
     await call('PATCH', `/v1/admin/hosts/${host.who.id}`, by('admin'), { status: 'verified' });
   }
 
@@ -276,33 +421,66 @@ const seed = async () => {
 
   console.log('Rooms');
   const slowDance = await openRoom(by('rohan'), {
-    planId: plan('premium'), title: 'Two truths and a slow dance', summary: 'Honest questions, no photos, and a playlist everyone adds to',
-    description, category: 'dating', ticketPricePaise: 49_900,
+    planId: plan('premium'),
+    title: 'Two truths and a slow dance',
+    summary: 'Honest questions, no photos, and a playlist everyone adds to',
+    description,
+    category: 'dating',
+    ticketPricePaise: 49_900,
   });
   const letters = await openRoom(by('meera'), {
-    planId: plan('growth'), title: 'Letters to someone you have not met', summary: 'Write first, wonder later. Hosted by a former radio host',
-    description, category: 'dating', ticketPricePaise: 29_900,
+    planId: plan('growth'),
+    title: 'Letters to someone you have not met',
+    summary: 'Write first, wonder later. Hosted by a former radio host',
+    description,
+    category: 'dating',
+    ticketPricePaise: 29_900,
   });
   const chai = await openRoom(by('rohan'), {
-    planId: plan('growth'), title: 'Sunday chai and strangers', summary: 'A gentle room to make new friends in your city',
-    description, category: 'friends', ticketPricePaise: 14_900, admission: 'instant', balanceMode: 'open',
+    planId: plan('growth'),
+    title: 'Sunday chai and strangers',
+    summary: 'A gentle room to make new friends in your city',
+    description,
+    category: 'friends',
+    ticketPricePaise: 14_900,
+    admission: 'instant',
+    balanceMode: 'open',
   });
   const quiz = await openRoom(by('kabir'), {
-    planId: plan('basic'), title: 'Midnight quiz for singles', summary: 'Teams are random, flirting is optional, trivia is mandatory',
-    description, category: 'dating', ticketPricePaise: 19_900,
+    planId: plan('basic'),
+    title: 'Midnight quiz for singles',
+    summary: 'Teams are random, flirting is optional, trivia is mandatory',
+    description,
+    category: 'dating',
+    ticketPricePaise: 19_900,
   });
   const bookshop = await openRoom(by('meera'), {
-    planId: plan('growth'), title: 'The bookshop after closing', summary: 'For people who still fold the corner of the page',
-    description, category: 'hobbies', ticketPricePaise: 19_900, balanceMode: 'open',
+    planId: plan('growth'),
+    title: 'The bookshop after closing',
+    summary: 'For people who still fold the corner of the page',
+    description,
+    category: 'hobbies',
+    ticketPricePaise: 19_900,
+    balanceMode: 'open',
   });
   await openRoom(by('kabir'), {
-    planId: plan('premium'), title: 'Monsoon playlist swap', summary: 'Bring three songs that sound like rain. Opens this weekend',
-    description, category: 'personality', ticketPricePaise: 29_900,
+    planId: plan('premium'),
+    title: 'Monsoon playlist swap',
+    summary: 'Bring three songs that sound like rain. Opens this weekend',
+    description,
+    category: 'personality',
+    ticketPricePaise: 29_900,
     scheduledFor: new Date(Date.now() + 2 * 86_400_000).toISOString(),
   });
   const dinner = await openRoom(by('rohan'), {
-    planId: plan('basic'), title: 'Six people, one long dinner', summary: 'A small private table for those tired of small talk',
-    description, category: 'small_group', ticketPricePaise: 19_900, visibility: 'private', balanceMode: 'open',
+    planId: plan('basic'),
+    title: 'Six people, one long dinner',
+    summary: 'A small private table for those tired of small talk',
+    description,
+    category: 'small_group',
+    ticketPricePaise: 19_900,
+    visibility: 'private',
+    balanceMode: 'open',
   });
 
   console.log('Members joining');
@@ -318,36 +496,91 @@ const seed = async () => {
     aliases[`slow:${member}`] = await join(by('rohan'), by(member), slowDance, note);
   }
   for (const member of ['sana', 'kunal', 'zoya', 'arjun'] as const) {
-    aliases[`letters:${member}`] = await join(by('meera'), by(member), letters, 'I write better than I talk, so this room feels right.');
+    aliases[`letters:${member}`] = await join(
+      by('meera'),
+      by(member),
+      letters,
+      'I write better than I talk, so this room feels right.',
+    );
   }
   for (const member of ['ananya', 'dev', 'priya', 'ishaan', 'sana'] as const) {
     await join(by('rohan'), by(member), chai, 'New-ish in the city and would love company.');
   }
   for (const member of ['priya', 'kunal'] as const) {
-    await join(by('kabir'), by(member), quiz, 'I once won a quiz with a single correct answer about otters.');
+    await join(
+      by('kabir'),
+      by(member),
+      quiz,
+      'I once won a quiz with a single correct answer about otters.',
+    );
   }
   for (const member of ['sana', 'dev', 'ananya'] as const) {
     await join(by('meera'), by(member), bookshop, 'Currently reading three books at once.');
   }
-  const dinnerCode = (await call<{ inviteCode: string }>('GET', `/v1/host/rooms/${dinner}`, by('rohan'))).inviteCode;
-  await join(by('rohan'), by('arjun'), dinner, 'Rohan gave me the code at the last dinner.', dinnerCode);
+  const dinnerCode = (
+    await call<{ inviteCode: string }>('GET', `/v1/host/rooms/${dinner}`, by('rohan'))
+  ).inviteCode;
+  await join(
+    by('rohan'),
+    by('arjun'),
+    dinner,
+    'Rohan gave me the code at the last dinner.',
+    dinnerCode,
+  );
 
   console.log('Conversations and activities');
-  await say(by('rohan'), slowDance, 'Welcome in, everyone. One rule: be more honest than you would be on a first date.');
-  await say(by('ananya'), slowDance, 'Okay, I will start. I have never finished a single Rubik’s cube and I have bought four.');
-  await say(by('ishaan'), slowDance, 'That is oddly endearing. Mine: I bake bread when I am anxious, so my freezer is mostly bread.');
+  await say(
+    by('rohan'),
+    slowDance,
+    'Welcome in, everyone. One rule: be more honest than you would be on a first date.',
+  );
+  await say(
+    by('ananya'),
+    slowDance,
+    'Okay, I will start. I have never finished a single Rubik’s cube and I have bought four.',
+  );
+  await say(
+    by('ishaan'),
+    slowDance,
+    'That is oddly endearing. Mine: I bake bread when I am anxious, so my freezer is mostly bread.',
+  );
   await say(by('priya'), slowDance, 'A freezer full of bread is a love language.');
-  await say(by('arjun'), slowDance, 'Two truths and a lie: I have run a marathon, I have met a tiger, I have never eaten Maggi.');
+  await say(
+    by('arjun'),
+    slowDance,
+    'Two truths and a lie: I have run a marathon, I have met a tiger, I have never eaten Maggi.',
+  );
   await say(by('zoya'), slowDance, 'The Maggi one is the lie. Nobody grows up here without Maggi.');
-  const poll = await call<{ activity: { id: string } }>('POST', `/v1/host/rooms/${slowDance}/activities`, by('rohan'), {
-    kind: 'poll', title: 'Ideal first date?', options: ['Street food walk', 'Bookstore and coffee', 'Live music', 'Cooking together'],
-  });
-  for (const [member, choice] of [['ananya', 1], ['ishaan', 3], ['priya', 0], ['arjun', 0], ['zoya', 2], ['kunal', 2]] as const) {
+  const poll = await call<{ activity: { id: string } }>(
+    'POST',
+    `/v1/host/rooms/${slowDance}/activities`,
+    by('rohan'),
+    {
+      kind: 'poll',
+      title: 'Ideal first date?',
+      options: ['Street food walk', 'Bookstore and coffee', 'Live music', 'Cooking together'],
+    },
+  );
+  for (const [member, choice] of [
+    ['ananya', 1],
+    ['ishaan', 3],
+    ['priya', 0],
+    ['arjun', 0],
+    ['zoya', 2],
+    ['kunal', 2],
+  ] as const) {
     await tryCall('POST', `/v1/activities/${poll.activity.id}/respond`, by(member), { choice });
   }
-  const prompt = await call<{ activity: { id: string } }>('POST', `/v1/host/rooms/${slowDance}/activities`, by('rohan'), {
-    kind: 'prompt', title: 'What is a small thing that made you smile this week?', options: [],
-  });
+  const prompt = await call<{ activity: { id: string } }>(
+    'POST',
+    `/v1/host/rooms/${slowDance}/activities`,
+    by('rohan'),
+    {
+      kind: 'prompt',
+      title: 'What is a small thing that made you smile this week?',
+      options: [],
+    },
+  );
   for (const [member, text] of [
     ['ananya', 'A stranger held the lift and said “no rush” like they meant it.'],
     ['ishaan', 'My sourdough finally rose properly. I took eleven photos.'],
@@ -355,30 +588,62 @@ const seed = async () => {
   ] as const) {
     await tryCall('POST', `/v1/activities/${prompt.activity.id}/respond`, by(member), { text });
   }
-  await say(by('meera'), letters, 'Tonight’s prompt: write a two-line letter to the person you will be in five years.');
-  await say(by('sana'), letters, 'Dear future me: I hope you still say yes to the strange invitations.');
+  await say(
+    by('meera'),
+    letters,
+    'Tonight’s prompt: write a two-line letter to the person you will be in five years.',
+  );
+  await say(
+    by('sana'),
+    letters,
+    'Dear future me: I hope you still say yes to the strange invitations.',
+  );
   await say(by('kunal'), letters, 'Dear future me: please water the plants. They trusted you.');
   await say(by('ananya'), chai, 'Is anyone else here for the chai or just the strangers?');
   await say(by('dev'), chai, 'Strangers first, chai a very close second.');
 
   console.log('A mutual reveal');
-  await call('POST', `/v1/rooms/${slowDance}/reveals`, by('ananya'), { toAlias: aliases['slow:ishaan'], announce: true });
-  const incoming = await call<{ id: string; direction: string; status: string }[]>('GET', '/v1/me/connections', by('ishaan'));
+  await call('POST', `/v1/rooms/${slowDance}/reveals`, by('ananya'), {
+    toAlias: aliases['slow:ishaan'],
+    announce: true,
+  });
+  const incoming = await call<{ id: string; direction: string; status: string }[]>(
+    'GET',
+    '/v1/me/connections',
+    by('ishaan'),
+  );
   const request = incoming.find((r) => r.direction === 'incoming' && r.status === 'pending')!;
-  await call('POST', `/v1/reveals/${request.id}/respond`, by('ishaan'), { accept: true, announce: true });
+  await call('POST', `/v1/reveals/${request.id}/respond`, by('ishaan'), {
+    accept: true,
+    announce: true,
+  });
   await call('POST', `/v1/reveals/${request.id}/confirm`, by('ananya'), { stage: 'talking' });
   await call('POST', `/v1/reveals/${request.id}/confirm`, by('ishaan'), { stage: 'talking' });
-  const dm = await call<{ threadId: string }>('POST', `/v1/users/${by('ishaan').id}/dm`, by('ananya'));
-  await call('POST', `/v1/threads/${dm.threadId}/messages`, by('ananya'), { body: 'So. About that freezer full of bread.' });
-  await call('POST', `/v1/threads/${dm.threadId}/messages`, by('ishaan'), { body: 'Saturday? I will bring a loaf as proof.' });
+  const dm = await call<{ threadId: string }>(
+    'POST',
+    `/v1/users/${by('ishaan').id}/dm`,
+    by('ananya'),
+  );
+  await call('POST', `/v1/threads/${dm.threadId}/messages`, by('ananya'), {
+    body: 'So. About that freezer full of bread.',
+  });
+  await call('POST', `/v1/threads/${dm.threadId}/messages`, by('ishaan'), {
+    body: 'Saturday? I will bring a loaf as proof.',
+  });
 
   console.log('A finished room with ratings');
   const poetry = await openRoom(by('meera'), {
-    planId: plan('basic'), title: 'Poetry swap at golden hour', summary: 'Read one poem you love and one you wrote',
-    description, category: 'personality', ticketPricePaise: 14_900, balanceMode: 'open',
+    planId: plan('basic'),
+    title: 'Poetry swap at golden hour',
+    summary: 'Read one poem you love and one you wrote',
+    description,
+    category: 'personality',
+    ticketPricePaise: 14_900,
+    balanceMode: 'open',
   });
   const raters = ['sana', 'dev', 'priya', 'arjun'] as const;
-  for (const member of raters) await join(by('meera'), by(member), poetry, 'I have a poem I have never read aloud.');
+  for (const member of raters)
+    await join(by('meera'), by(member), poetry, 'I have a poem I have never read aloud.');
   await say(by('meera'), poetry, 'Thank you all for being brave tonight.');
   await call('POST', `/v1/host/rooms/${poetry}/end`, by('meera'));
   const reviews = [
@@ -388,46 +653,105 @@ const seed = async () => {
     [5, 'Came for poetry, left with three new friends.'],
   ] as const;
   for (const [index, member] of raters.entries()) {
-    await call('POST', `/v1/rooms/${poetry}/rating`, by(member), { stars: reviews[index]![0], comment: reviews[index]![1] });
+    await call('POST', `/v1/rooms/${poetry}/rating`, by(member), {
+      stars: reviews[index]![0],
+      comment: reviews[index]![1],
+    });
   }
 
   console.log('Following hosts');
-  const board = await call<{ host: { id: string; displayName: string } }[]>('GET', '/v1/leaderboard');
+  const board = await call<{ host: { id: string; displayName: string } }[]>(
+    'GET',
+    '/v1/leaderboard',
+  );
   for (const entry of board) {
-    for (const member of ['ananya', 'zoya', 'priya']) await tryCall('POST', `/v1/hosts/${entry.host.id}/follow`, by(member));
+    for (const member of ['ananya', 'zoya', 'priya'])
+      await tryCall('POST', `/v1/hosts/${entry.host.id}/follow`, by(member));
   }
 
   console.log('Communities');
   const communitiesToMake = [
-    { owner: 'zoya', name: 'Street Style Bengaluru', tagline: 'Outfits, thrift finds and styling tips', topic: 'fashion', visibility: 'open', display: 'Thrift Queen',
-      description: 'Share what you wore today and get kind, useful feedback. Thrift hauls very welcome.' },
-    { owner: 'sana', name: 'Night Readers', tagline: 'Slow reading and gentle talk before bed', topic: 'books', visibility: 'private', display: 'Page Turner',
-      description: 'A small circle for people who read before sleep. One book a month, no pressure.' },
-    { owner: 'arjun', name: 'Weekend Runners', tagline: 'Easy runs, early mornings, filter coffee after', topic: 'fitness', visibility: 'open', display: 'Arjun N',
-      description: 'All paces welcome. Post your routes, your splits and your post-run breakfasts.' },
-    { owner: 'dev', name: 'Indie Music Diggers', tagline: 'Find the band before everyone else does', topic: 'music', visibility: 'open', display: 'Bassline Dev',
-      description: 'Share the songs you cannot stop playing. Local gigs, demos and deep cuts.' },
+    {
+      owner: 'zoya',
+      name: 'Street Style Bengaluru',
+      tagline: 'Outfits, thrift finds and styling tips',
+      topic: 'fashion',
+      visibility: 'open',
+      display: 'Thrift Queen',
+      description:
+        'Share what you wore today and get kind, useful feedback. Thrift hauls very welcome.',
+    },
+    {
+      owner: 'sana',
+      name: 'Night Readers',
+      tagline: 'Slow reading and gentle talk before bed',
+      topic: 'books',
+      visibility: 'private',
+      display: 'Page Turner',
+      description:
+        'A small circle for people who read before sleep. One book a month, no pressure.',
+    },
+    {
+      owner: 'arjun',
+      name: 'Weekend Runners',
+      tagline: 'Easy runs, early mornings, filter coffee after',
+      topic: 'fitness',
+      visibility: 'open',
+      display: 'Arjun N',
+      description: 'All paces welcome. Post your routes, your splits and your post-run breakfasts.',
+    },
+    {
+      owner: 'dev',
+      name: 'Indie Music Diggers',
+      tagline: 'Find the band before everyone else does',
+      topic: 'music',
+      visibility: 'open',
+      display: 'Bassline Dev',
+      description: 'Share the songs you cannot stop playing. Local gigs, demos and deep cuts.',
+    },
   ];
   const slugs: Record<string, string> = {};
   for (const c of communitiesToMake) {
     const { slug } = await call<{ slug: string }>('POST', '/v1/communities', by(c.owner), {
-      name: c.name, tagline: c.tagline, description: c.description, topic: c.topic, visibility: c.visibility, displayName: c.display,
-      rules: 'Be kind. Talk about the work, never about bodies. No sharing anyone else’s photos or details.',
+      name: c.name,
+      tagline: c.tagline,
+      description: c.description,
+      topic: c.topic,
+      visibility: c.visibility,
+      displayName: c.display,
+      rules:
+        'Be kind. Talk about the work, never about bodies. No sharing anyone else’s photos or details.',
     });
     slugs[c.owner] = slug;
   }
   const memberships: [string, string, string][] = [
-    ['zoya', 'ananya', 'Ananya R'], ['zoya', 'priya', 'Priya climbs'], ['zoya', 'sana', 'Sana M'],
-    ['arjun', 'ishaan', 'Bread Runner'], ['arjun', 'priya', 'Priya climbs'], ['arjun', 'kunal', 'Kunal V'],
-    ['dev', 'kunal', 'Kunal V'], ['dev', 'sana', 'Sana M'], ['dev', 'zoya', 'Zoya K'],
+    ['zoya', 'ananya', 'Ananya R'],
+    ['zoya', 'priya', 'Priya climbs'],
+    ['zoya', 'sana', 'Sana M'],
+    ['arjun', 'ishaan', 'Bread Runner'],
+    ['arjun', 'priya', 'Priya climbs'],
+    ['arjun', 'kunal', 'Kunal V'],
+    ['dev', 'kunal', 'Kunal V'],
+    ['dev', 'sana', 'Sana M'],
+    ['dev', 'zoya', 'Zoya K'],
   ];
   for (const [owner, member, display] of memberships) {
-    await call('POST', `/v1/communities/${slugs[owner]}/join`, by(member), { displayName: display, useProfilePhoto: true });
+    await call('POST', `/v1/communities/${slugs[owner]}/join`, by(member), {
+      displayName: display,
+      useProfilePhoto: true,
+    });
   }
-  await call('POST', `/v1/communities/${slugs.sana}/join`, by('ananya'), { displayName: 'Footnote Fan' });
+  await call('POST', `/v1/communities/${slugs.sana}/join`, by('ananya'), {
+    displayName: 'Footnote Fan',
+  });
 
   const posts: [string, string, string, number][] = [
-    ['zoya', 'zoya', 'Thrifted this blazer for ₹350. Styling it three ways this week, look one:', 2],
+    [
+      'zoya',
+      'zoya',
+      'Thrifted this blazer for ₹350. Styling it three ways this week, look one:',
+      2,
+    ],
     ['zoya', 'ananya', 'Monsoon-proof and still cute? Trench coat plus wellies, always.', 1],
     ['zoya', 'priya', 'Climbing chalk on everything I own. Is that an aesthetic yet?', 0],
     ['arjun', 'arjun', 'Cubbon Park loop at 6am. 8km, easy pace, coffee at the end.', 1],
@@ -438,10 +762,18 @@ const seed = async () => {
   const postIds: string[] = [];
   for (const [index, [owner, author, body, images]] of posts.entries()) {
     const mediaIds: string[] = [];
-    for (let i = 0; i < images; i++) mediaIds.push(await upload(by(author), 'post', png(720, 900, index + i)));
-    const post = await call<{ id: string }>('POST', `/v1/communities/${slugs[owner]}/posts`, by(author), {
-      kind: images ? 'photo' : 'text', body, mediaIds,
-    });
+    for (let i = 0; i < images; i++)
+      mediaIds.push(await upload(by(author), 'post', png(720, 900, index + i)));
+    const post = await call<{ id: string }>(
+      'POST',
+      `/v1/communities/${slugs[owner]}/posts`,
+      by(author),
+      {
+        kind: images ? 'photo' : 'text',
+        body,
+        mediaIds,
+      },
+    );
     postIds.push(post.id);
   }
   for (const [postIndex, member, body] of [
@@ -453,11 +785,22 @@ const seed = async () => {
   ] as const) {
     await tryCall('POST', `/v1/posts/${postIds[postIndex]}/comments`, by(member), { body });
   }
-  for (const [postIndex, member] of [[0, 'ananya'], [0, 'priya'], [0, 'sana'], [1, 'zoya'], [3, 'ishaan'], [4, 'priya'], [5, 'zoya']] as const) {
+  for (const [postIndex, member] of [
+    [0, 'ananya'],
+    [0, 'priya'],
+    [0, 'sana'],
+    [1, 'zoya'],
+    [3, 'ishaan'],
+    [4, 'priya'],
+    [5, 'zoya'],
+  ] as const) {
     await tryCall('POST', `/v1/posts/${postIds[postIndex]}/like`, by(member));
   }
   const storyMedia = await upload(by('zoya'), 'story', png(540, 960, 3));
-  await call('POST', `/v1/communities/${slugs.zoya}/stories`, by('zoya'), { mediaId: storyMedia, caption: 'Today’s thrift haul, full reveal tomorrow' });
+  await call('POST', `/v1/communities/${slugs.zoya}/stories`, by('zoya'), {
+    mediaId: storyMedia,
+    caption: 'Today’s thrift haul, full reveal tomorrow',
+  });
 
   console.log('Done.');
 };
