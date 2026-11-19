@@ -1,6 +1,6 @@
-import { and, asc, count, desc, eq, inArray, sql, sum } from 'drizzle-orm';
+import { and, asc, avg, count, desc, eq, inArray, sql, sum } from 'drizzle-orm';
 import type { z } from 'zod';
-import { FEATURE } from '@reomi/shared';
+import { ACTIVITY_FEATURE, ACTIVITY_KINDS, FEATURE, formatPaise } from '@reomi/shared';
 import type {
   Applicant,
   CreateRoomInput,
@@ -9,32 +9,41 @@ import type {
   HostRoomDashboard,
   paginationQuery,
 } from '@reomi/shared';
-import type { Db } from '../db/client';
 import {
   applications,
+  hostRatings,
   hostVerifications,
   payments,
   planFeatures,
   plans,
   profiles,
+  reveals,
+  roomWaitlist,
   rooms,
 } from '../db/schema';
-import { conflict, forbidden, isUniqueViolation, notFound } from '../lib/errors';
-import type { PaymentProvider } from '../lib/payment-provider';
+import { isHealthy, pressure } from '../lib/balance';
+import { AppError, conflict, forbidden, isUniqueViolation, notFound } from '../lib/errors';
+import { roomChannel } from '../lib/realtime';
 import type { AuthContext } from '../plugins/auth';
+import { assessCandidate, seatHolders } from './balance.service';
+import type { Ctx } from './common';
 import {
   applicationCountSql,
   iso,
   isoOrNull,
   isRoomLive,
+  isRoomUpcoming,
   pageOffset,
   seatsTakenSql,
   viewStatus,
 } from './common';
+import { invalidateHostCache } from './hosts.service';
+import { notify } from './notify.service';
 import { openPlanCheckout } from './payments.service';
+import { acceptInto } from './rooms.service';
 
 export const submitHostApplication = async (
-  db: Db,
+  ctx: Pick<Ctx, 'db'>,
   auth: AuthContext,
   input: HostApplicationInput,
 ) => {
@@ -47,7 +56,7 @@ export const submitHostApplication = async (
   }
 
   try {
-    await db
+    await ctx.db
       .insert(hostVerifications)
       .values({ userId: auth.profile.id, ...input })
       .onConflictDoUpdate({
@@ -82,7 +91,12 @@ const toHostRoom = ({ room, planName, pending, joined, seatsTaken }: HostRoomRow
   summary: room.summary,
   category: room.category,
   status: room.status,
+  visibility: room.visibility,
+  admission: room.admission,
+  balanceMode: room.category === 'dating' ? 'balanced' : room.balanceMode,
+  inviteCode: room.inviteCode,
   live: isRoomLive(room),
+  upcoming: isRoomUpcoming(room),
   planName,
   ticketPricePaise: room.ticketPricePaise,
   capacity: room.capacity,
@@ -93,8 +107,8 @@ const toHostRoom = ({ room, planName, pending, joined, seatsTaken }: HostRoomRow
   createdAt: iso(room.createdAt),
 });
 
-export const listHostRooms = async (db: Db, hostId: string): Promise<HostRoom[]> => {
-  const rows = await db
+export const listHostRooms = async (ctx: Pick<Ctx, 'db'>, hostId: string): Promise<HostRoom[]> => {
+  const rows = await ctx.db
     .select(hostRoomSelection)
     .from(rooms)
     .innerJoin(plans, eq(plans.id, rooms.planId))
@@ -103,8 +117,8 @@ export const listHostRooms = async (db: Db, hostId: string): Promise<HostRoom[]>
   return rows.map(toHostRoom);
 };
 
-const ownedRoom = async (db: Db, roomId: string, hostId: string) => {
-  const [room] = await db
+const ownedRoom = async (ctx: Pick<Ctx, 'db'>, roomId: string, hostId: string) => {
+  const [room] = await ctx.db
     .select()
     .from(rooms)
     .where(and(eq(rooms.id, roomId), eq(rooms.hostId, hostId)));
@@ -112,24 +126,41 @@ const ownedRoom = async (db: Db, roomId: string, hostId: string) => {
   return room;
 };
 
-export const createRoom = async (
-  deps: { db: Db; provider: PaymentProvider },
-  hostId: string,
-  input: CreateRoomInput,
-) => {
-  const { db } = deps;
-  const [plan] = await db
+/** The fairness rule: a group room's ticket may exceed the plan's published reference by the cap. */
+export const maxTicketFor = (plan: Pick<typeof plans.$inferSelect, 'referenceTicketPaise' | 'ticketCapBps'>) =>
+  Math.floor((plan.referenceTicketPaise * (10_000 + plan.ticketCapBps)) / 10_000);
+
+export const createRoom = async (ctx: Ctx, hostId: string, input: CreateRoomInput) => {
+  const [plan] = await ctx.db
     .select()
     .from(plans)
     .where(and(eq(plans.id, input.planId), eq(plans.isActive, true)));
   if (!plan) throw conflict('plan_unavailable', 'This plan is not available');
 
-  const entitled = await db
+  const cap = maxTicketFor(plan);
+  if (input.ticketPricePaise > cap) {
+    throw new AppError(
+      400,
+      'ticket_above_cap',
+      `Group rooms on the ${plan.name} plan can charge up to ${formatPaise(cap)} per ticket`,
+    );
+  }
+
+  let scheduledFor: Date | null = null;
+  if (input.scheduledFor) {
+    scheduledFor = new Date(input.scheduledFor);
+    const ahead = scheduledFor.getTime() - Date.now();
+    if (ahead < 5 * 60_000 || ahead > 60 * 86_400_000) {
+      throw new AppError(400, 'validation_failed', 'Schedule the opening between 5 minutes and 60 days from now');
+    }
+  }
+
+  const entitled = await ctx.db
     .select({ key: planFeatures.featureKey })
     .from(planFeatures)
     .where(eq(planFeatures.planId, plan.id));
 
-  const [room] = await db
+  const [room] = await ctx.db
     .insert(rooms)
     .values({
       hostId,
@@ -138,6 +169,11 @@ export const createRoom = async (
       summary: input.summary,
       description: input.description,
       category: input.category,
+      visibility: input.visibility,
+      admission: input.admission,
+      // Dating rooms always balance; hosts cannot switch it off.
+      balanceMode: input.category === 'dating' ? 'balanced' : input.balanceMode,
+      scheduledFor,
       ticketPricePaise: input.ticketPricePaise,
       planPricePaise: plan.pricePaise,
       capacity: plan.capacity,
@@ -147,20 +183,18 @@ export const createRoom = async (
     })
     .returning();
 
-  return { roomId: room!.id, checkout: await openPlanCheckout(deps, room!) };
+  return { roomId: room!.id, checkout: await openPlanCheckout(ctx, room!) };
 };
 
-export const retryPlanCheckout = async (
-  deps: { db: Db; provider: PaymentProvider },
-  roomId: string,
-  hostId: string,
-) => openPlanCheckout(deps, await ownedRoom(deps.db, roomId, hostId));
+export const retryPlanCheckout = async (ctx: Ctx, roomId: string, hostId: string) =>
+  openPlanCheckout(ctx, await ownedRoom(ctx, roomId, hostId));
 
 export const getHostRoomDashboard = async (
-  db: Db,
+  ctx: Ctx,
   roomId: string,
   hostId: string,
 ): Promise<HostRoomDashboard> => {
+  const { db } = ctx;
   const [row] = await db
     .select(hostRoomSelection)
     .from(rooms)
@@ -173,6 +207,23 @@ export const getHostRoomDashboard = async (
     eq(applications.roomId, roomId),
     inArray(applications.status, ['pending', 'accepted', 'joined']),
   );
+
+  const [holders, [waitlist], [ratings], [connections]] = await Promise.all([
+    seatHolders(db, roomId),
+    db.select({ value: count() }).from(roomWaitlist).where(eq(roomWaitlist.roomId, roomId)),
+    db
+      .select({ average: avg(hostRatings.stars).mapWith(Number), count: count() })
+      .from(hostRatings)
+      .where(eq(hostRatings.roomId, roomId)),
+    db
+      .select({
+        reveals: count(),
+        verified: sql<number>`count(*) filter (where ${reveals.requesterConfirmedAt} is not null
+          and ${reveals.recipientConfirmedAt} is not null)::int`,
+      })
+      .from(reveals)
+      .where(and(eq(reveals.roomId, roomId), eq(reveals.status, 'accepted'))),
+  ]);
 
   let demand: HostRoomDashboard['demand'] = null;
   if (entitlements.includes(FEATURE.analyticsDetailed)) {
@@ -211,7 +262,7 @@ export const getHostRoomDashboard = async (
           and(
             eq(applications.roomId, roomId),
             sql`${applications.decidedAt} is not null
-          and ${applications.status} in ('accepted', 'joined')`,
+          and ${applications.status} in ('accepted', 'joined', 'left')`,
           ),
         ),
       db
@@ -239,19 +290,32 @@ export const getHostRoomDashboard = async (
     };
   }
 
-  return { ...toHostRoom(row), entitlements, demand, funnel };
+  return {
+    ...toHostRoom(row),
+    entitlements,
+    activityKinds: ACTIVITY_KINDS.filter((kind) => entitlements.includes(ACTIVITY_FEATURE[kind])),
+    balance: { healthy: isHealthy(holders), groups: pressure(holders) },
+    waitlistCount: waitlist?.value ?? 0,
+    ratings: {
+      average: ratings?.average ? Math.round(ratings.average * 10) / 10 : null,
+      count: ratings?.count ?? 0,
+    },
+    connections: { reveals: connections?.reveals ?? 0, verified: connections?.verified ?? 0 },
+    demand,
+    funnel,
+  };
 };
 
 export const listApplicants = async (
-  db: Db,
+  ctx: Ctx,
   roomId: string,
   hostId: string,
   query: z.infer<typeof paginationQuery>,
 ) => {
-  await ownedRoom(db, roomId, hostId);
+  const room = await ownedRoom(ctx, roomId, hostId);
 
-  const [rows, totals] = await Promise.all([
-    db
+  const [rows, totals, holders] = await Promise.all([
+    ctx.db
       .select({
         application: applications,
         gender: profiles.gender,
@@ -266,20 +330,29 @@ export const listApplicants = async (
       )
       .limit(query.pageSize)
       .offset(pageOffset(query)),
-    db.select({ total: count() }).from(applications).where(eq(applications.roomId, roomId)),
+    ctx.db.select({ total: count() }).from(applications).where(eq(applications.roomId, roomId)),
+    seatHolders(ctx.db, roomId),
   ]);
 
   return {
-    items: rows.map(({ application, gender, interestedIn }): Applicant => ({
-      id: application.id,
-      alias: application.alias,
-      gender,
-      interestedIn: interestedIn as Applicant['interestedIn'],
-      message: application.message,
-      status: viewStatus(application),
-      paymentDueAt: isoOrNull(application.paymentDueAt),
-      createdAt: iso(application.createdAt),
-    })),
+    items: rows.map(({ application, gender, interestedIn }): Applicant => {
+      const outlook =
+        application.status === 'pending'
+          ? assessCandidate(room, holders, { gender, wants: interestedIn })
+          : null;
+      return {
+        id: application.id,
+        alias: application.alias,
+        gender,
+        interestedIn: interestedIn as Applicant['interestedIn'],
+        message: application.message,
+        status: viewStatus(application),
+        paymentDueAt: isoOrNull(application.paymentDueAt),
+        admissible: outlook ? outlook.ok : true,
+        blockedReason: outlook?.message ?? null,
+        createdAt: iso(application.createdAt),
+      };
+    }),
     total: totals[0]?.total ?? 0,
     page: query.page,
     pageSize: query.pageSize,
@@ -287,16 +360,15 @@ export const listApplicants = async (
 };
 
 export const decideApplication = async (
-  db: Db,
+  ctx: Ctx,
   input: {
     roomId: string;
     applicationId: string;
     hostId: string;
     decision: 'accept' | 'reject';
-    paymentWindowHours: number;
   },
-) =>
-  db.transaction(async (tx) => {
+) => {
+  const outcome = await ctx.db.transaction(async (tx) => {
     // The room lock is what stops two accepts from both taking the last seat.
     const [room] = await tx
       .select()
@@ -321,7 +393,7 @@ export const decideApplication = async (
         .update(applications)
         .set({ status: 'rejected', decidedAt: now })
         .where(eq(applications.id, application.id));
-      return;
+      return { room, application, accepted: false };
     }
 
     if (!isRoomLive(room, now)) throw conflict('room_not_open', 'This room is no longer open');
@@ -331,13 +403,42 @@ export const decideApplication = async (
       .where(eq(rooms.id, room.id));
     if ((seats?.taken ?? 0) >= room.capacity) throw conflict('room_full', 'This room is full');
 
-    const windowEnd = now.getTime() + input.paymentWindowHours * 3_600_000;
-    await tx
-      .update(applications)
-      .set({
-        status: 'accepted',
-        decidedAt: now,
-        paymentDueAt: new Date(Math.min(windowEnd, room.endsAt!.getTime())),
-      })
-      .where(eq(applications.id, application.id));
+    // Hosts cannot override the interest balance; the platform enforces it here.
+    const [candidate] = await tx
+      .select({ gender: profiles.gender, wants: profiles.interestedIn })
+      .from(profiles)
+      .where(eq(profiles.id, application.userId));
+    const outlook = assessCandidate(room, await seatHolders(tx, room.id), candidate!);
+    if (outlook && !outlook.ok) throw conflict('room_unbalanced', outlook.message!);
+
+    await acceptInto(tx, room, application.id, ctx.config.PAYMENT_WINDOW_HOURS, now);
+    return { room, application, accepted: true };
   });
+
+  await notify(ctx, [outcome.application.userId], outcome.accepted
+    ? {
+        kind: 'accepted',
+        title: `You were accepted into ${outcome.room.title}`,
+        body: `Pay ${formatPaise(outcome.room.ticketPricePaise)} within ${ctx.config.PAYMENT_WINDOW_HOURS} hours to take your seat.`,
+        link: `/rooms/${outcome.room.id}`,
+      }
+    : {
+        kind: 'rejected',
+        title: `Not this time: ${outcome.room.title}`,
+        body: 'The host chose other applicants. You were not charged.',
+        link: '/',
+      });
+};
+
+/** Ends a room early. Ratings open for its members straight away. */
+export const endRoom = async (ctx: Ctx, roomId: string, hostId: string) => {
+  const room = await ownedRoom(ctx, roomId, hostId);
+  if (!isRoomLive(room) && !isRoomUpcoming(room)) throw conflict('room_not_open', 'This room is not running');
+  const now = new Date();
+  await ctx.db
+    .update(rooms)
+    .set({ status: 'closed', endsAt: now, ...(room.startsAt && room.startsAt > now ? { startsAt: now } : {}) })
+    .where(eq(rooms.id, roomId));
+  ctx.hub.publish(roomChannel(roomId), { kind: 'members' });
+  invalidateHostCache();
+};

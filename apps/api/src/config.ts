@@ -36,6 +36,19 @@ const envSchema = z
 
     RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(300),
 
+    /** Supabase Storage for photos and videos. Without it, files are kept on local disk. */
+    SUPABASE_SECRET_KEY: z.string().min(10).optional(),
+    STORAGE_BUCKET: z.string().default('reomi-media'),
+    /** Where local-disk uploads are served from, in development. */
+    PUBLIC_API_URL: z.url().optional(),
+    MEDIA_DIR: z.string().default('.local/media'),
+    MEDIA_SIGNING_SECRET: z.string().min(16).optional(),
+    /** The minute-by-minute notifier. Tests turn it off and call it directly. */
+    SWEEPER: z
+      .enum(['on', 'off'])
+      .default('on')
+      .transform((value) => value === 'on'),
+
     /** How long an accepted applicant holds a seat before it is released. */
     PAYMENT_WINDOW_HOURS: z.coerce.number().int().min(1).max(168).default(48),
   })

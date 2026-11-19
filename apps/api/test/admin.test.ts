@@ -170,7 +170,7 @@ describe('plans and features', () => {
         plan.capacity,
       ]),
     ).toEqual([
-      ['Basic', 100_000, 7, 20],
+      ['Basic', 50_000, 7, 20],
       ['Growth', 200_000, 14, 50],
       ['Premium', 400_000, 30, 100],
     ]);
@@ -193,7 +193,7 @@ describe('plans and features', () => {
 
     await h.joinRoom(host, created.json.roomId);
     const payments = await h.call('GET', '/v1/admin/payments?purpose=room_ticket', admin);
-    expect(payments.json.items[0].platformFeePaise).toBe(6_000);
+    expect(payments.json.items[0].platformFeePaise).toBe(4_000);
   });
 
   it('counts the rooms on each plan', async () => {
@@ -257,9 +257,20 @@ describe('plans and features', () => {
   });
 
   it('marks unbuilt features as coming soon rather than selling them as live', async () => {
-    const { features } = await h.plan('premium');
-    const activity = features.find((f: { key: string }) => f.key === 'activities_advanced');
-    expect(activity.isLive).toBe(false);
+    const { id, features } = await h.plan('premium');
+    expect(features.find((f: { key: string }) => f.key === 'activities_advanced').isLive).toBe(true);
+    await h.call('POST', '/v1/admin/features', admin, {
+      key: 'video_rooms',
+      name: 'Video rooms',
+      description: 'Face to face, later',
+      isLive: false,
+      sortOrder: 95,
+    });
+    await h.call('PUT', `/v1/admin/plans/${id}/features`, admin, {
+      featureKeys: [...features.map((f: { key: string }) => f.key), 'video_rooms'],
+    });
+    const after = await h.plan('premium');
+    expect(after.features.find((f: { key: string }) => f.key === 'video_rooms').isLive).toBe(false);
   });
 
   it('adds and edits catalogue features', async () => {
@@ -294,9 +305,9 @@ describe('stats', () => {
     const { json } = await h.call('GET', '/v1/admin/stats', admin);
     expect(json.revenue).toEqual({
       hostPlanPaise: 200_000,
-      ticketGrossPaise: 60_000,
-      platformFeePaise: 206_000,
-      hostLiabilityPaise: 54_000,
+      ticketGrossPaise: 40_000,
+      platformFeePaise: 204_000,
+      hostLiabilityPaise: 36_000,
       refundsDuePaise: 0,
     });
     expect(json.rooms).toEqual({ total: 1, live: 1 });

@@ -32,12 +32,21 @@ export default async function setup(project: TestProject) {
     password: 'postgres',
     port,
     persistent: false,
+    initdbFlags: ['--encoding=UTF8', '--locale=C'],
     onLog: () => {},
     onError: () => {},
   });
   await server.initialise();
   await server.start();
-  await server.createDatabase('reomi_test');
+  const admin = postgres(`postgres://postgres:postgres@127.0.0.1:${port}/postgres`, {
+    max: 1,
+    onnotice: () => {},
+  });
+  // Windows clusters default to WIN1252, which cannot hold characters like the rupee sign.
+  await admin.unsafe(
+    "create database reomi_test encoding 'UTF8' template template0 lc_collate 'C' lc_ctype 'C'",
+  );
+  await admin.end();
 
   const url = `postgres://postgres:postgres@127.0.0.1:${port}/reomi_test`;
   const client = postgres(url, { max: 1, onnotice: () => {} });

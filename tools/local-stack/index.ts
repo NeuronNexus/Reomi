@@ -89,6 +89,7 @@ const pg = new EmbeddedPostgres({
   password: 'postgres',
   port: PORTS.postgres,
   persistent: true,
+  initdbFlags: ['--encoding=UTF8', '--locale=C'],
   onLog: () => {},
   onError: () => {},
 });
@@ -111,13 +112,19 @@ try {
     await pg.initialise();
   }
   await pg.start();
-  if (firstRun) {
-    await pg.createDatabase('reomi');
-  } else {
-    // Data folders created before the rename hold an older database name.
-    const admin = postgres(databaseUrl.replace(/\/reomi$/, '/postgres'), { max: 1, onnotice: () => {} });
+  {
+    // Created explicitly as UTF-8: Windows clusters default to WIN1252, which cannot store "₹".
+    // Data folders from before the rename hold an older database name, so this also covers them.
+    const admin = postgres(databaseUrl.replace(/\/reomi$/, '/postgres'), {
+      max: 1,
+      onnotice: () => {},
+    });
     const found = await admin`select 1 from pg_database where datname = 'reomi'`;
-    if (found.length === 0) await admin.unsafe('create database reomi');
+    if (found.length === 0) {
+      await admin.unsafe(
+        "create database reomi encoding 'UTF8' template template0 lc_collate 'C' lc_ctype 'C'",
+      );
+    }
     await admin.end();
   }
 

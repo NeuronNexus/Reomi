@@ -134,9 +134,9 @@ describe('checkout confirmation', () => {
     await pay(member, order);
     expect(await paymentRow(order.paymentId)).toMatchObject({
       status: 'paid',
-      amountPaise: 30_000,
-      platformFeePaise: 3_000,
-      hostEarningPaise: 27_000,
+      amountPaise: 20_000,
+      platformFeePaise: 2_000,
+      hostEarningPaise: 18_000,
     });
   });
 
@@ -225,7 +225,7 @@ describe('webhooks', () => {
     await webhook(captured(order, 'order.paid'));
     const rows = await h.db.select().from(payments).where(eq(payments.id, order.paymentId));
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ status: 'paid', platformFeePaise: 3_000 });
+    expect(rows[0]).toMatchObject({ status: 'paid', platformFeePaise: 2_000 });
   });
 
   it('ignores an amount that does not match the order', async () => {
@@ -294,7 +294,7 @@ describe('money that can no longer buy a seat', () => {
     await pay(member, order);
 
     const stats = await h.call('GET', '/v1/admin/stats', admin);
-    expect(stats.json.revenue.refundsDuePaise).toBe(30_000);
+    expect(stats.json.revenue.refundsDuePaise).toBe(20_000);
     expect(stats.json.revenue.ticketGrossPaise).toBe(0);
 
     const url = `/v1/admin/payments/${order.paymentId}/mark-refunded`;

@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { eq, sql } from 'drizzle-orm';
 import { SignJWT } from 'jose';
 import { inject } from 'vitest';
@@ -9,6 +12,8 @@ import { profiles } from '../src/db/schema';
 import { seedCatalogue } from '../src/db/seed';
 import { MockProvider } from '../src/lib/payment-provider';
 import type { PaymentProvider } from '../src/lib/payment-provider';
+import { RealtimeHub } from '../src/lib/realtime';
+import { LocalStorage } from '../src/lib/storage';
 import { createTokenVerifier } from '../src/lib/token-verifier';
 
 export const SUPABASE_URL = 'https://test.supabase.local';
@@ -45,13 +50,16 @@ export interface User {
 }
 
 export const createHarness = async (payments: PaymentProvider = new MockProvider()) => {
-  const config = testConfig();
+  const config = testConfig({ SWEEPER: 'off' });
+  const mediaDir = await mkdtemp(join(tmpdir(), 'reomi-test-media-'));
   const { db, close } = createDatabase(config.DATABASE_URL, 12);
   const app = await buildApp({
     config,
     db,
     payments,
     verifyToken: createTokenVerifier(config),
+    storage: new LocalStorage(mediaDir, 'http://127.0.0.1', 'test-media-secret-test-media-secret'),
+    realtime: new RealtimeHub(),
   });
   await app.ready();
 
@@ -134,8 +142,10 @@ export const createHarness = async (payments: PaymentProvider = new MockProvider
     title: 'Late night conversations',
     summary: 'A slow room for people who like to talk',
     description: 'We start with honest questions and see where the conversation goes from there.',
-    category: 'dating',
-    ticketPricePaise: 30_000,
+    // Balancing has its own tests; the generic room skips it so capacity tests stay about capacity.
+    category: 'friends',
+    balanceMode: 'open',
+    ticketPricePaise: 20_000,
     ...overrides,
   });
 

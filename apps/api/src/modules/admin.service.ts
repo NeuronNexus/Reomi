@@ -102,7 +102,37 @@ export const getStats = async (db: Db): Promise<AdminStats> => {
       .from(payments),
   ]);
 
-  return { users: users!, hosts: hosts!, rooms: roomTotals!, revenue: money! };
+  const activity = await db.execute<{
+    messages24h: number;
+    reveals: number;
+    verified: number;
+    communities: number;
+    posts24h: number;
+    open_flags: number;
+  }>(sql`select
+    (select count(*)::int from messages where created_at > now() - interval '24 hours') as "messages24h",
+    (select count(*)::int from reveals where status = 'accepted') as reveals,
+    (select count(*)::int from reveals where status = 'accepted' and requester_confirmed_at is not null
+      and recipient_confirmed_at is not null) as verified,
+    (select count(*)::int from communities) as communities,
+    (select count(*)::int from posts where created_at > now() - interval '24 hours') as "posts24h",
+    (select count(*)::int from moderation_flags where status = 'open') as open_flags`);
+  const a = [...activity][0]!;
+
+  return {
+    users: users!,
+    hosts: hosts!,
+    rooms: roomTotals!,
+    revenue: money!,
+    activity: {
+      messages24h: Number(a.messages24h),
+      reveals: Number(a.reveals),
+      verifiedConnections: Number(a.verified),
+      communities: Number(a.communities),
+      posts24h: Number(a.posts24h),
+      openFlags: Number(a.open_flags),
+    },
+  };
 };
 
 export const listUsers = async (db: Db, query: z.infer<typeof adminUserQuery>) => {
@@ -118,7 +148,13 @@ export const listUsers = async (db: Db, query: z.infer<typeof adminUserQuery>) =
 
   const [rows, totals] = await Promise.all([
     db
-      .select({ profile: profiles, hostStatus: hostVerifications.status })
+      .select({
+        profile: profiles,
+        hostStatus: hostVerifications.status,
+        strikes: sql<number>`(select count(*)::int from moderation_flags f where f.user_id = ${profiles.id}
+          and f.severity = 'strong' and f.status <> 'dismissed'
+          and f.created_at > now() - interval '30 days')`,
+      })
       .from(profiles)
       .leftJoin(hostVerifications, eq(hostVerifications.userId, profiles.id))
       .where(where)
@@ -129,13 +165,14 @@ export const listUsers = async (db: Db, query: z.infer<typeof adminUserQuery>) =
   ]);
 
   return page(
-    rows.map(({ profile, hostStatus }) => ({
+    rows.map(({ profile, hostStatus, strikes }) => ({
       id: profile.id,
       email: profile.email,
       fullName: profile.fullName,
       role: profile.role,
       status: profile.status,
       hostStatus,
+      strikes,
       lastSeenAt: isoOrNull(profile.lastSeenAt),
       createdAt: iso(profile.createdAt),
     })),
@@ -297,6 +334,7 @@ export const listRooms = async (db: Db, query: z.infer<typeof adminRoomQuery>) =
       title: room.title,
       category: room.category,
       status: room.status,
+      visibility: room.visibility,
       live: isRoomLive(room),
       hostDisplayName,
       hostEmail,
@@ -400,6 +438,9 @@ export const listAdminPlans = async (db: Db): Promise<AdminPlan[]> => {
     durationDays: plan.durationDays,
     capacity: plan.capacity,
     platformFeeBps: plan.platformFeeBps,
+    referenceTicketPaise: plan.referenceTicketPaise,
+    ticketCapBps: plan.ticketCapBps,
+    maxTicketPaise: Math.floor((plan.referenceTicketPaise * (10_000 + plan.ticketCapBps)) / 10_000),
     isActive: plan.isActive,
     sortOrder: plan.sortOrder,
     roomCount,

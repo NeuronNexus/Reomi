@@ -1,20 +1,54 @@
 import { sql } from 'drizzle-orm';
 import type { AnyColumn } from 'drizzle-orm';
+import type { Config } from '../config';
+import type { Db, Tx } from '../db/client';
 import type { applications } from '../db/schema';
 import { rooms } from '../db/schema';
+import type { PaymentProvider } from '../lib/payment-provider';
+import type { RealtimeHub } from '../lib/realtime';
+import type { MediaStorage } from '../lib/storage';
 
 type Application = typeof applications.$inferSelect;
 type Room = typeof rooms.$inferSelect;
+
+/** Everything a service may need. Routes build one per request from the app decorations. */
+export interface Ctx {
+  db: Db;
+  hub: RealtimeHub;
+  storage: MediaStorage;
+  config: Config;
+  provider: PaymentProvider;
+}
+
+export type DbLike = Db | Tx;
 
 export const iso = (date: Date): string => date.toISOString();
 export const isoOrNull = (date: Date | null): string | null => date?.toISOString() ?? null;
 
 export const likeTerm = (term: string): string => `%${term.replace(/[\\%_]/g, '\\$&')}%`;
 
-export const isRoomLive = (room: Pick<Room, 'status' | 'endsAt'>, now = new Date()): boolean =>
-  room.status === 'open' && room.endsAt !== null && room.endsAt > now;
+/** Open for applications and conversation: paid, started and not yet over. */
+export const isRoomLive = (
+  room: Pick<Room, 'status' | 'endsAt' | 'startsAt'>,
+  now = new Date(),
+): boolean =>
+  room.status === 'open' &&
+  room.startsAt !== null &&
+  room.startsAt <= now &&
+  room.endsAt !== null &&
+  room.endsAt > now;
 
-export const roomLiveSql = sql<boolean>`(${rooms.status} = 'open' and ${rooms.endsAt} > now())`;
+/** Paid and announced but not open yet. */
+export const isRoomUpcoming = (room: Pick<Room, 'status' | 'startsAt'>, now = new Date()): boolean =>
+  room.status === 'open' && room.startsAt !== null && room.startsAt > now;
+
+/** Over, either by time or because the host ended it. Ratings open from here. */
+export const isRoomEnded = (room: Pick<Room, 'status' | 'endsAt' | 'startsAt'>, now = new Date()) =>
+  room.startsAt !== null &&
+  (room.status === 'closed' || (room.endsAt !== null && room.endsAt <= now));
+
+export const roomLiveSql = sql<boolean>`(${rooms.status} = 'open' and ${rooms.startsAt} <= now()
+  and ${rooms.endsAt} > now())`;
 
 export const viewStatus = (
   application: Pick<Application, 'status' | 'paymentDueAt'>,
@@ -47,3 +81,9 @@ export const roomsHostedSql = (hostId: AnyColumn) => sql<number>`(
 
 export const pageOffset = ({ page, pageSize }: { page: number; pageSize: number }): number =>
   (page - 1) * pageSize;
+
+/** Orders two user ids the way `threads` stores them. */
+export const orderedPair = (a: string, b: string): [string, string] => (a < b ? [a, b] : [b, a]);
+
+export const firstName = (fullName: string | null): string =>
+  (fullName ?? '').trim().split(/\s+/)[0] || 'Someone';

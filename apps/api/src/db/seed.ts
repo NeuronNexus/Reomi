@@ -36,20 +36,20 @@ const FEATURES = [
   {
     key: 'activities_basic',
     name: 'Basic room activities',
-    description: 'Conversation starters for your room',
-    isLive: false,
+    description: 'Conversation prompts and this-or-that questions',
+    isLive: true,
   },
   {
     key: 'activities_extended',
     name: 'Extended room activities',
-    description: 'Games and structured introductions',
-    isLive: false,
+    description: 'Polls with up to six options',
+    isLive: true,
   },
   {
     key: 'activities_advanced',
     name: 'Advanced room activities',
-    description: 'The full activity toolkit',
-    isLive: false,
+    description: 'Structured introduction rounds',
+    isLive: true,
   },
 ];
 
@@ -58,9 +58,10 @@ const PLANS = [
     slug: 'basic',
     name: 'Basic',
     description: 'A short room for a small group',
-    pricePaise: 100_000,
+    pricePaise: 50_000,
     durationDays: 7,
     capacity: 20,
+    referenceTicketPaise: 20_000,
     sortOrder: 10,
     featureKeys: ['host_dashboard', 'activities_basic'],
   },
@@ -71,6 +72,7 @@ const PLANS = [
     pricePaise: 200_000,
     durationDays: 14,
     capacity: 50,
+    referenceTicketPaise: 30_000,
     sortOrder: 20,
     featureKeys: [
       'host_dashboard',
@@ -87,6 +89,7 @@ const PLANS = [
     pricePaise: 400_000,
     durationDays: 30,
     capacity: 100,
+    referenceTicketPaise: 50_000,
     sortOrder: 30,
     featureKeys: [
       'host_dashboard',

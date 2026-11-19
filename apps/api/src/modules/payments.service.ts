@@ -6,7 +6,11 @@ import type { Db, Tx } from '../db/client';
 import { applications, payments, rooms } from '../db/schema';
 import { AppError, conflict, notFound } from '../lib/errors';
 import type { PaymentProvider } from '../lib/payment-provider';
+import { roomChannel } from '../lib/realtime';
+import type { Ctx } from './common';
 import { isRoomLive, seatsTakenSql, viewStatus } from './common';
+import { invalidateHostCache } from './hosts.service';
+import { notify } from './notify.service';
 
 type Payment = typeof payments.$inferSelect;
 type Room = typeof rooms.$inferSelect;
@@ -132,12 +136,14 @@ export const openTicketCheckout = async (
 
 const settleHostPlan = async (tx: Tx, payment: Payment, room: Room, now: Date) => {
   if (room.status !== 'pending_payment') return null;
+  // A scheduled room opens at its chosen time; until then it is listed as upcoming.
+  const start = room.scheduledFor && room.scheduledFor > now ? room.scheduledFor : now;
   await tx
     .update(rooms)
     .set({
       status: 'open',
-      startsAt: now,
-      endsAt: new Date(now.getTime() + room.durationDays * 86_400_000),
+      startsAt: start,
+      endsAt: new Date(start.getTime() + room.durationDays * 86_400_000),
     })
     .where(eq(rooms.id, room.id));
   return { platformFeePaise: payment.amountPaise, hostEarningPaise: 0 };
@@ -221,9 +227,10 @@ const toResult = (payment: Payment, processing = false): PaymentResult => ({
 });
 
 export const confirmPayment = async (
-  { db, provider }: Deps,
+  deps: Deps,
   input: { paymentId: string; userId: string; providerPaymentId: string; signature: string },
 ): Promise<PaymentResult> => {
+  const { db, provider } = deps;
   const [payment] = await db
     .select()
     .from(payments)
@@ -245,7 +252,36 @@ export const confirmPayment = async (
   }
   if (remote.status !== 'captured') return toResult(payment, true);
 
-  return toResult(await settlePayment(db, payment.id, input.providerPaymentId));
+  const settled = await settlePayment(db, payment.id, input.providerPaymentId);
+  if ('hub' in deps) await afterSettle(deps as Ctx, settled);
+  return toResult(settled);
+};
+
+/**
+ * Side effects once money has landed: tell the room and the host, and give instant rooms a chance
+ * to admit people the new member's arrival has balanced in.
+ */
+export const afterSettle = async (ctx: Ctx, payment: Payment) => {
+  if (payment.status !== 'paid') return;
+  if (payment.purpose === 'host_plan') {
+    invalidateHostCache();
+    return;
+  }
+  const [row] = await ctx.db
+    .select({ room: rooms, alias: applications.alias })
+    .from(payments)
+    .innerJoin(rooms, eq(rooms.id, payments.roomId))
+    .innerJoin(applications, eq(applications.id, payments.applicationId))
+    .where(eq(payments.id, payment.id));
+  if (!row) return;
+  ctx.hub.publish(roomChannel(row.room.id), { kind: 'members' });
+  await notify(ctx, [row.room.hostId], {
+    kind: 'joined',
+    title: `${row.alias} joined ${row.room.title}`,
+    link: `/rooms/${row.room.id}/space`,
+  });
+  const { autoAdmit } = await import('./rooms.service');
+  await autoAdmit(ctx, row.room.id);
 };
 
 interface RazorpayEvent {
@@ -257,10 +293,11 @@ interface RazorpayEvent {
 
 /** Returns normally for anything unactionable, so the provider does not retry it forever. */
 export const handleProviderEvent = async (
-  { db, provider }: Deps,
+  deps: Deps,
   event: RazorpayEvent,
   log: { warn: (data: object, message: string) => void },
 ): Promise<void> => {
+  const { db, provider } = deps;
   if (event.event !== 'payment.captured' && event.event !== 'order.paid') return;
 
   const entity = event.payload?.payment?.entity;
@@ -280,5 +317,6 @@ export const handleProviderEvent = async (
     log.warn({ paymentId: payment.id, amount: entity.amount }, 'Webhook amount mismatch');
     return;
   }
-  await settlePayment(db, payment.id, entity.id);
+  const settled = await settlePayment(db, payment.id, entity.id);
+  if ('hub' in deps) await afterSettle(deps as Ctx, settled);
 };

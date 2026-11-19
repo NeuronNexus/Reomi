@@ -131,9 +131,9 @@ describe('under concurrent load', () => {
 
     expect(settled.every((payment) => payment.status === 'paid')).toBe(true);
     const [row] = await h.db.select().from(payments).where(eq(payments.id, order.paymentId));
-    expect(row).toMatchObject({ status: 'paid', platformFeePaise: 3_000 });
+    expect(row).toMatchObject({ status: 'paid', platformFeePaise: 2_000 });
     const stats = await h.call('GET', '/v1/admin/stats', admin);
-    expect(stats.json.revenue.ticketGrossPaise).toBe(30_000);
+    expect(stats.json.revenue.ticketGrossPaise).toBe(20_000);
   });
 
   it('does not oversell when late payers race for the last seat', async () => {

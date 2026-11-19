@@ -75,7 +75,7 @@ describe('creating a room', () => {
   it('keeps the room off Explore until the plan is paid', async () => {
     const { id } = await h.plan('basic');
     const created = await h.call('POST', '/v1/host/rooms', host, h.roomInput(id));
-    expect(created.json.checkout.amountPaise).toBe(100_000);
+    expect(created.json.checkout.amountPaise).toBe(50_000);
 
     expect((await h.call('GET', '/v1/rooms')).json.total).toBe(0);
     expect((await h.call('GET', `/v1/rooms/${created.json.roomId}`)).status).toBe(404);
@@ -177,7 +177,7 @@ describe('applying', () => {
     expect(accepted.json.seatsLeft).toBe(49);
 
     const order = await h.checkout(member, application.id);
-    expect(order.json.amountPaise).toBe(30_000);
+    expect(order.json.amountPaise).toBe(20_000);
     expect((await h.payMock(member, order.json)).json.status).toBe('paid');
 
     const lobby = await h.call('GET', `/v1/rooms/${room.id}/lobby`, member);
@@ -385,9 +385,9 @@ describe('plan entitlements', () => {
       applied: 1,
       accepted: 1,
       joined: 1,
-      grossPaise: 30_000,
-      platformFeePaise: 3_000,
-      hostEarningsPaise: 27_000,
+      grossPaise: 20_000,
+      platformFeePaise: 2_000,
+      hostEarningsPaise: 18_000,
     });
   });
 });
